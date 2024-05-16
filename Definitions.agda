@@ -82,178 +82,207 @@ Name : Set
 Name = String
 
 infixr 5 ƛ_⇒_
-infixr 5 μ_[_]_
+infixr 5 μ_⇒_
+infix 5 [_]_
 infixl 7 _·_
 infix 9 `_
 
 data Term : Set
+data Command : Set
 
 data Term where
   `_   : Id → Term
   ƛ_⇒_ : Id → Term → Term
+  μ_⇒_ : Name → Command → Term
   _·_  : Term → Term → Term
-  μ_[_]_ : Name → Name → Term → Term
 
-{-data Command where
-  [_]_ : Name → Term → Command-}
+data Command where
+  [_]_ : Name → Term → Command
 
 myterm : Term
-myterm = ƛ "x" ⇒ μ "a" [ "a" ] ` "x" · ` "y"
+myterm = ƛ "x" ⇒ μ "a" ⇒ [ "a" ] ` "x" · ` "y"
 
--- LAMBDA MU CBV REDUCTION
--- data Value : Set where
---   var : ∀ {x : Id} → ` x → Value
-
--- define Value as a predicate on terms, or as a datatype itself? here it's a predicate:
 data Value : Term → Set where
   Vx : ∀ {x : Id}            → Value (` x)
   Vƛ : ∀ {x : Id} {M : Term} → Value (ƛ x ⇒ M)
 
+
+-- LAMBDA MU TERM SUBSTITUTION
 -- simple term substitution
-_[_/_]β : Term → Term → Id → Term
-(` y)         [ N / x ]β with x ≟ y
-...                         | yes _ = N
-...                         | no  _ = ` y
+_[_/_]β  : Term    → Term → Id → Term
+_[_/_]β' : Command → Term → Id → Command
 
-(ƛ y ⇒ M)     [ N / x ]β with x ≟ y
-...                         | yes _ = ƛ y ⇒ M
-...                         | no  _ = ƛ y ⇒ M [ N / x ]β
+(` y)     [ N / x ]β with x ≟ y
+...                     | yes _ = N
+...                     | no  _ = ` y
 
-(M · P)       [ N / x ]β            = M [ N / x ]β · P [ N / x ]β
+(ƛ y ⇒ M) [ N / x ]β with x ≟ y
+...                     | yes _ = ƛ y ⇒ M
+...                     | no  _ = ƛ y ⇒ M [ N / x ]β
 
-(μ α [ β ] M) [ N / x ]β            = μ α [ β ] M [ N / x ]β
+(M · P)   [ N / x ]β            = M [ N / x ]β · P [ N / x ]β
+
+(μ α ⇒ C) [ N / x ]β            = μ α ⇒ C [ N / x ]β'
+
+([ α ] M) [ N / x ]β'           = [ α ] M [ N / x ]β
 
 -- simple name substitution
-_[_/_]ρ : Term → Name → Name → Term
-(` x)         [ α / β ]ρ            = ` x
+_[_/_]ρ  : Term    → Name → Name → Term
+_[_/_]ρ' : Command → Name → Name → Command
 
-(ƛ x ⇒ M)     [ α / β ]ρ            = ƛ x ⇒ M [ α / β ]ρ
+(` x)     [ α / β ]ρ             = ` x
 
-(M · N)       [ α / β ]ρ            =  M [ α / β ]ρ · N [ α / β ]ρ
+(ƛ x ⇒ M) [ α / β ]ρ             = ƛ x ⇒ M [ α / β ]ρ
 
-(μ γ [ δ ] M) [ α / β ]ρ with β ≟ δ
-...                         | yes _ = μ γ [ α ] M [ α / β ]ρ
-...                         | no  _ = μ γ [ δ ] M [ α / β ]ρ
+(M · N)   [ α / β ]ρ             =  M [ α / β ]ρ · N [ α / β ]ρ
 
--- _[_/_]ᵨ : Name → Name → Name → Name
--- α [ β / γ ]ᵨ with α ≟ γ
--- ...             | yes _ = β
--- ...             | no  _ = α
+(μ γ ⇒ C) [ α / β ]ρ             = μ γ ⇒ C [ α / β ]ρ'
+
+([ γ ] M) [ α / β ]ρ' with β ≟ γ
+...                      | yes _ = [ α ] M [ α / β ]ρ
+...                      | no  _ = [ γ ] M [ α / β ]ρ
 
 -- right structural substitution
-_[_∙_/_]r : Term → Term → Name → Name → Term
-(` x)          [ N ∙ γ / α ]r            = ` x
+_[_∙_/_]r  : Term    → Term → Name → Name → Term
+_[_∙_/_]r' : Command → Term → Name → Name → Command
+(` x)     [ N ∙ γ / α ]r             = ` x
 
-(ƛ x ⇒ M)      [ N ∙ γ / α ]r            = ƛ x ⇒ M [ N ∙ γ / α ]r
+(ƛ x ⇒ M) [ N ∙ γ / α ]r             = ƛ x ⇒ M [ N ∙ γ / α ]r
 
-(M · P)        [ N ∙ γ / α ]r            = M [ N ∙ γ / α ]r · P [ N ∙ γ / α ]r
+(M · P)   [ N ∙ γ / α ]r             = M [ N ∙ γ / α ]r · P [ N ∙ γ / α ]r
 
-(μ β [ δ ] M ) [ N ∙ γ / α ]r with α ≟ δ
-...                              | yes _ = μ β [ γ ] M [ N ∙ γ / α ]r · N
-...                              | no  _ = μ β [ δ ] M [ N ∙ γ / α ]r
+(μ β ⇒ C) [ N ∙ γ / α ]r             = μ β ⇒ C [ N ∙ γ / α ]r'
+
+([ β ] M) [ N ∙ γ / α ]r' with α ≟ β
+...                          | yes _ = [ γ ] M [ N ∙ γ / α ]r · N
+...                          | no  _ = [ β ] M [ N ∙ γ / α ]r
 
 -- left structural substitution
-_[_∙_/_]l : Term → Term → Name → Name → Term
-(` x)          [ N ∙ γ / α ]l            = ` x
+_[_∙_/_]l  : Term    → Term → Name → Name → Term
+_[_∙_/_]l' : Command → Term → Name → Name → Command
+(` x)     [ N ∙ γ / α ]l             = ` x
 
-(ƛ x ⇒ M)      [ N ∙ γ / α ]l            = ƛ x ⇒ M [ N ∙ γ / α ]l
+(ƛ x ⇒ M) [ N ∙ γ / α ]l             = ƛ x ⇒ M [ N ∙ γ / α ]l
 
-(M · P)        [ N ∙ γ / α ]l            = M [ N ∙ γ / α ]l · P [ N ∙ γ / α ]l
+(M · P)   [ N ∙ γ / α ]l             = M [ N ∙ γ / α ]l · P [ N ∙ γ / α ]l
 
-(μ β [ δ ] M ) [ N ∙ γ / α ]l with α ≟ δ
-...                              | yes _ = μ β [ γ ] N · M [ N ∙ γ / α ]l
-...                              | no  _ = μ β [ δ ] M [ N ∙ γ / α ]l
+(μ β ⇒ C) [ N ∙ γ / α ]l             = μ β ⇒ C [ N ∙ γ / α ]l'
+
+([ β ] M) [ N ∙ γ / α ]l' with α ≟ β
+...                          | yes _ = [ γ ] N · M [ N ∙ γ / α ]l
+...                          | no  _ = [ β ] M [ N ∙ γ / α ]l
 
 
--- lmuv single step reduction
+-- LMUV SINGLE STEP REDUCTION
 infixr 4 _⟶_
-data _⟶_ : Term → Term → Set where
+infixr 4 _⟶'_
+data _⟶_  : Term    → Term    → Set
+data _⟶'_ : Command → Command → Set
+
+data _⟶_ where
   [β] : ∀ {x : Id} {M V : Term}
     → Value V
     ----------------
     → (ƛ x ⇒ M) · V ⟶ M [ V / x ]β
-    
-  [ρ] : ∀ {α β γ δ : Name} {M : Term}
-    ----------------
-    → μ α [ β ] μ γ [ δ ] M ⟶ (μ α [ δ ] M) [ β / γ ]ρ
 
-  [μr] : ∀ {α β γ : Name} {M N : Term}
+  [μr] : ∀ {α γ : Name} {N : Term} {C : Command}
     ----------------
-    → (μ α [ β ] M) · N ⟶ (μ γ [ β ] M) [ N ∙ γ / α ]r
+    → (μ α ⇒ C) · N ⟶ μ γ ⇒ C [ N ∙ γ / α ]r'
 
-  [μl] : ∀ {α β γ : Name} {M V : Term}
+  [μl] : ∀ {α γ : Name} {V : Term} {C : Command}
     → Value V
     ----------------
-    → V · (μ α [ β ] M) ⟶ (μ γ [ β ] M) [ V ∙ γ / α ]l
+    → V · (μ α ⇒ C) ⟶ μ γ ⇒ C [ V ∙ γ / α ]l'
 
-  [c1] : ∀ {M M' N : Term}
+  [app-l] : ∀ {M M' N : Term}
     → M ⟶ M'
     ----------------
     → M · N ⟶ M' · N
 
-  [c2] : ∀ {M N N' : Term}
+  [app-r] : ∀ {M N N' : Term}
     → N ⟶ N'
     ----------------
     → M · N ⟶ M · N'
 
-  [c3] : ∀ {x : Id} {M M' : Term}
+  [abs] : ∀ {x : Id} {M M' : Term}
     → M ⟶ M'
     ----------------
     → ƛ x ⇒ M ⟶ ƛ x ⇒ M'
 
-  [c4] : ∀ {α β : Name} {M M' : Term}
+  [mu] : ∀ {α : Name} {C C' : Command}
+    → C ⟶' C'
+    ----------------
+    → μ α ⇒ C ⟶ μ α ⇒ C'
+
+data _⟶'_ where
+  [ρ] : ∀ {α β : Name} {C : Command}
+    ----------------
+    → [ α ] μ β ⇒ C ⟶' C [ α / β ]ρ'
+
+  [name] : ∀ {α : Name} {M M' : Term}
     → M ⟶ M'
     ----------------
-    → μ α [ β ] M ⟶ μ α [ β ] M'
+    → [ α ] M ⟶' [ α ] M'
 
+-- Reflexive transitive closure of lmuv reduction
 infixr 4 _⟶*_
-_⟶*_ : Term → Term → Set
-_⟶*_ = rtc _⟶_
+infixr 4 _⟶*'_
+_⟶*_  : Term    → Term    → Set
+_⟶*'_ : Command → Command → Set
+_⟶*_  = rtc _⟶_
+_⟶*'_ = rtc _⟶'_
 
-cong1 : ∀ {M M' N : Term}
+app-l* : ∀ {M M' N : Term}
   → M ⟶* M'
   ----------------
   → M · N ⟶* M' · N
-cong1 reflx = reflx
-cong1 (trans mp pm') = trans (cong1 mp) ([c1] pm')
+app-l* reflx = reflx
+app-l* (trans mp pm') = trans (app-l* mp) ([app-l] pm')
   
-cong2 : ∀ {M N N' : Term}
+app-r* : ∀ {M N N' : Term}
   → N ⟶* N'
   ----------------
   → M · N ⟶* M · N'
-cong2 reflx = reflx
-cong2 (trans np pn') = trans (cong2 np) ([c2] pn')
+app-r* reflx = reflx
+app-r* (trans np pn') = trans (app-r* np) ([app-r] pn')
 
-cong3 : ∀ {x : Id} {M M' : Term}
+abs* : ∀ {x : Id} {M M' : Term}
   → M ⟶* M'
   ----------------
   → ƛ x ⇒ M ⟶* ƛ x ⇒ M'
-cong3 reflx = reflx
-cong3 (trans mn nm') = trans (cong3 mn) ([c3] nm')
+abs* reflx = reflx
+abs* (trans mn nm') = trans (abs* mn) ([abs] nm')
 
-cong4 : ∀ {α β : Name} {M M' : Term}
+mu* : ∀ {α : Name} {C C' : Command}
+  → C ⟶*' C'
+  ----------------
+  → μ α ⇒ C ⟶* μ α ⇒ C'
+mu* reflx = reflx
+mu* (trans cd dc') = trans (mu* cd) ([mu] dc')
+
+name* : ∀ {α : Name} {M M' : Term}
   → M ⟶* M'
   ----------------
-  → μ α [ β ] M ⟶* μ α [ β ] M'
-cong4 reflx = reflx
-cong4 (trans mn nm') = trans (cong4 mn) ([c4] nm')
+  → [ α ] M ⟶*' [ α ] M'
+name* reflx = reflx
+name* (trans mn nm') = trans (name* mn) ([name] nm')
 
--- β* : ∀ {x : Id} {M V : Term}
---   → Value V
---   ----------------
---   → (ƛ x ⇒ M) · V ⟶* M [ V / x ]β
--- β* val
 
-cong-app : ∀ {M M' N N' : Term}
+app* : ∀ {M M' N N' : Term}
   → M ⟶* M'
   → N ⟶* N'
   ----------------
   → M · N ⟶* M' · N'
-cong-app mm' nn' = trans-rtc (cong1 mm') (cong2 nn')
+app* mm' nn' = trans-rtc (app-l* mm') (app-r* nn')
+
 
 -- LMUV PARALLEL REDUCTION
 infixr 4 _==>_
-data _==>_ : Term → Term → Set where
+infixr 4 _==>'_
+data _==>_  : Term    → Term    → Set
+data _==>'_ : Command → Command → Set 
+  
+data _==>_ where
   [1] : ∀ {x : Id}
     ----------------
     → ` x ==> ` x
@@ -263,10 +292,10 @@ data _==>_ : Term → Term → Set where
     ----------------
     → ƛ x ⇒ M ==> ƛ x ⇒ M'
 
-  [3] : ∀ {α β : Name} {M M' : Term}
-    → M ==> M'
+  [3] : ∀ {α β : Name} {C C' : Command}
+    → C ==>' C'
     ----------------
-    → μ α [ β ] M ==> μ α [ β ] M'
+    → μ α ⇒ C ==> μ α ⇒ C'
     
   [4] : ∀ {M N M' N' : Term}
     → M ==> M'
@@ -274,70 +303,87 @@ data _==>_ : Term → Term → Set where
     ----------------
     → M · N ==> M' · N'
 
-  [5] : ∀ {α β γ δ : Name} {M M' : Term}
-    → M ==> μ γ [ δ ] M'
-    ----------------
-    → μ α [ β ] M ==> (μ α [ δ ] M') [ β / γ ]ρ
-
-  [6] : ∀ {x : Id} {M M' N V : Term}
+  [7] : ∀ {x : Id} {M M' N V : Term}
     → Value V
     → M ==> ƛ x ⇒ M'
     → N ==> V
     ----------------
     → M · N ==> M' [ V / x ]β
 
-  [7] : ∀ {α β γ : Name} {M M' N N' : Term}
-    → M ==> μ α [ β ] M'
+  [8] : ∀ {α γ : Name} {M N N' : Term} {C : Command}
+    → M ==> μ α ⇒ C
     → N ==> N'
     ----------------
-    → M · N ==> (μ γ [ β ] M') [ N' ∙ γ / α ]r
+    → M · N ==> μ γ ⇒ C [ N' ∙ γ / α ]r'
 
-  [8] : ∀ {α β γ : Name} {M V N N' : Term}
+  [9] : ∀ {α γ : Name} {M V N : Term} {C : Command}
     → Value V
     → M ==> V
-    → N ==> μ α [ β ] N'
+    → N ==> μ α ⇒ C
     ----------------
-    → M · N ==> (μ γ [ β ] N') [ V ∙ γ / α ]l
+    → M · N ==> μ γ ⇒ C [ V ∙ γ / α ]l'
 
+data _==>'_ where
+  [5] : ∀ {α : Name} {M M' : Term}
+    → M ==> M'
+    ----------------
+    → [ α ] M ==>' [ α ] M'
+
+  [6] : ∀ {α β : Name} {M : Term} {C : Command}
+    → M ==> μ β ⇒ C
+    ----------------
+    → [ α ] M ==>' C [ α / β ]ρ'
+
+-- Reflexive transitive closure of lmuv parallel reduction
 infixr 4 _==>*_
-_==>*_ : Term → Term → Set
-_==>*_ = rtc _==>_
+infixr 4 _==>*'_
+_==>*_  : Term    → Term    → Set
+_==>*'_ : Command → Command → Set
+_==>*_  = rtc _==>_
+_==>*'_ = rtc _==>'_
 
 -- any term parallel reduces to itself
-par-refl : ∀ {M : Term} → M ==> M
-par-refl {` x}         = [1]
-par-refl {ƛ x ⇒ M}     = [2] par-refl
-par-refl {M · N}       = [4] par-refl par-refl
-par-refl {μ α [ β ] M} = [3] par-refl
+par-refl  : ∀ {M : Term}    → M ==> M
+par-refl' : ∀ {C : Command} → C ==>' C
+
+par-refl  {` x}     = [1]
+par-refl  {ƛ x ⇒ M} = [2] par-refl
+par-refl  {M · N}   = [4] par-refl par-refl
+par-refl  {μ α ⇒ C} = [3] par-refl'
+par-refl' {[ α ] M} = [5] par-refl
+
 
 -- SINGLE STEP AND PARALLEL REDUCTION HAVE THE SAME REFLEXIVE TRANSITIVE CLOSURE
--- postulate ==>*=⟶* : ∀ {M N : Term} → M ==>* N ⇔ M ⟶* N
 
-sin-par : ∀ {M N : Term} → M ⟶ N → M ==> N
-sin-par ([β] val)  = [6] val par-refl par-refl
-sin-par [ρ]        = [5] par-refl
-sin-par [μr]       = [7] par-refl par-refl
-sin-par ([μl] val) = [8] val par-refl par-refl
-sin-par ([c1] mm') = [4] (sin-par mm') par-refl
-sin-par ([c2] nn') = [4] par-refl (sin-par nn')
-sin-par ([c3] mm') = [2] (sin-par mm')
-sin-par ([c4] mm') = [3] (sin-par mm')
+sin-par  : ∀ {M N : Term}    → M ⟶ N  → M ==> N
+sin-par' : ∀ {C D : Command} → C ⟶' D → C ==>' D
+sin-par  ([β] val)     = [7] val par-refl par-refl
+sin-par   [μr]         = [8] par-refl par-refl
+sin-par  ([μl] val)    = [9] val par-refl par-refl
+sin-par  ([app-l] mm') = [4] (sin-par mm') par-refl
+sin-par  ([app-r] nn') = [4] par-refl (sin-par nn')
+sin-par  ([abs] mm')   = [2] (sin-par mm')
+sin-par  ([mu] cc')    = [3] (sin-par' cc')
+sin-par'  [ρ]          = [6] par-refl
+sin-par' ([name] mm')  = [5] (sin-par mm')
 
 sins-pars : ∀ {M N : Term} → M ⟶* N → M ==>* N
 sins-pars reflx         = reflx
 sins-pars (trans mp pn) = trans (sins-pars mp) (sin-par pn)
 
-par-sins : ∀ {M N : Term} → M ==> N → M ⟶* N
-par-sins [1]             = reflx
-par-sins ([2] mm')       = cong3 (par-sins mm')
-par-sins ([3] mm')       = cong4 (par-sins mm')
-par-sins ([4] mm' nn')   = cong-app (par-sins mm') (par-sins nn')
-par-sins ([5] mμ)        = trans (cong4 (par-sins mμ)) [ρ]
-par-sins ([6] val mλ nv) = trans (cong-app (par-sins mλ) (par-sins nv)) ([β] val)
-par-sins ([7] mμ nn')    = trans (cong-app (par-sins mμ) (par-sins nn')) [μr]
-par-sins ([8] val mv mμ) = trans (cong-app (par-sins mv) (par-sins mμ)) ([μl] val)
+par-sins  : ∀ {M N : Term}    → M ==> N  → M ⟶* N
+par-sins' : ∀ {C D : Command} → C ==>' D → C ⟶*' D
+par-sins   [1]            = reflx
+par-sins  ([2] mm')       = abs* (par-sins mm')
+par-sins  ([3] cc')       = mu* (par-sins' cc')
+par-sins  ([4] mm' nn')   = app* (par-sins mm') (par-sins nn')
+par-sins  ([7] val mλ nv) = trans (app* (par-sins mλ) (par-sins nv)) ([β] val)
+par-sins  ([8] mμ nn')    = trans (app* (par-sins mμ) (par-sins nn')) [μr]
+par-sins  ([9] val mv mμ) = trans (app* (par-sins mv) (par-sins mμ)) ([μl] val)
+par-sins' ([5] mm')       = name* (par-sins mm')
+par-sins' ([6] mμ)        = trans (name* (par-sins mμ)) [ρ]
+
 
 pars-sins : ∀ {M N : Term} → M ==>* N → M ⟶* N
 pars-sins reflx         = reflx
 pars-sins (trans mp pn) = trans-rtc (pars-sins mp) (par-sins pn)
-

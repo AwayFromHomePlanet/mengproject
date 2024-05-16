@@ -1,4 +1,4 @@
-module Confluence where
+module Confluenceold where
 
 open import Definitions
 open import Data.Product using (∃-syntax; _×_) renaming (_,_ to ⟨_,_⟩)
