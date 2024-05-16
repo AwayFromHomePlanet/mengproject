@@ -83,7 +83,21 @@ val-red-val ([2] vv') Vƛ = Vƛ
 ... | ()
 
 
-==>-diamond ([9] x tu tu₁) tv = {!   !}
+==>-diamond ([9] {α} {γ} val1 m0v1 n0μc1) ([4] m0m2 n0n2) with ==>-diamond m0v1 m0m2
+... | ⟨ v3 , ⟨ v1v3 , m2v3 ⟩ ⟩ with ==>-diamond n0μc1 n0n2
+... | ⟨ μ α ⇒ c3 , ⟨ [3] c1c3 , n2μc3 ⟩ ⟩ = ⟨ (μ γ ⇒ c3 [ v3 ∙ γ / α ]l') , ⟨ ([3] (μl-subst-lemma' c1c3 v1v3)) , [9] (val-red-val v1v3 val1) m2v3 n2μc3 ⟩ ⟩
+
+==>-diamond ([9] _ _ n0μc1) ([7] val2 _ n0v2) with ==>-diamond n0μc1 n0v2
+... | ⟨ .(μ _ ⇒ _) , ⟨ [3] _ , v2v3 ⟩ ⟩ with val-red-val v2v3 val2
+... | ()
+
+==>-diamond ([9] val1 m0v1 _) ([8] m0μc2 _) with ==>-diamond m0v1 m0μc2
+... | ⟨ .(μ _ ⇒ _) , ⟨ v1v3 , [3] _ ⟩ ⟩ with val-red-val v1v3 val1 
+... | ()
+
+==>-diamond ([9] {α} {γ} val1 m0v1 n0μc1) ([9] val2 m0v2 n0μc2) with ==>-diamond m0v1 m0v2
+... | ⟨ v3 , ⟨ v1v3 , v2v3 ⟩ ⟩ with ==>-diamond n0μc1 n0μc2
+... | ⟨ μ α ⇒ c3 , ⟨ [3] c1c3 , [3] c2c3 ⟩ ⟩ = {!   !}
 
 
 ==>-diamond' ([5] {α} m0m1) ([5] m0m2) with ==>-diamond m0m1 m0m2

@@ -1,19 +1,10 @@
 module Definitions where
 
--- open import Data.Bool using (Bool; true; false; T; not)
--- open import Data.Empty using (⊥; ⊥-elim)
--- open import Data.List using (List; _∷_; [])
--- open import Data.Nat using (ℕ; zero; suc)
 open import Data.Product using (∃-syntax; _×_) renaming (_,_ to ⟨_,_⟩)
 open import Data.String using (String; _≟_)
--- open import Data.Unit using (tt)
 open import Relation.Nullary using (Dec; yes; no; ¬_)
--- open import Relation.Nullary.Decidable using (False; toWitnessFalse)
--- open import Relation.Nullary.Negation using (¬?)
--- open import Relation.Binary.PropositionalEquality using (_≡_; _≢_; refl)
 
--- STUFF ABOUT RELATIONS
-
+---------------- PROPERTIES ABOUT RELATIONS ----------------
 diamond : ∀ {A : Set} → (_⇒_ : A → A → Set) → Set
 diamond {A} _⇒_ = ∀ {t u v : A}
     → t ⇒ u
@@ -21,7 +12,7 @@ diamond {A} _⇒_ = ∀ {t u v : A}
       --------------
     → ∃[ w ](u ⇒ w × v ⇒ w)
 
--- reflexive, transitive closure
+-- Reflexive transitive closure
 data rtc {A : Set} (⇒ : A → A → Set) : A → A → Set where
 
   reflx : ∀ {M : A}
@@ -41,12 +32,6 @@ trans-rtc : {A : Set} {⇒ : A → A → Set} {M N P : A}
   → rtc ⇒ M P
 trans-rtc mn reflx = mn
 trans-rtc mn (trans nq qp) = trans (trans-rtc mn nq) qp
-
-lift-rtc : {A : Set} {⇒ : A → A → Set} {M N : A}
-  → ⇒ M N
-  ----------------
-  → rtc ⇒ M N
-lift-rtc mn = trans reflx mn
 
 -- If t => u and t ===> v, then there exists w such that u ===> w and v => w
 parallelogram-lemma : ∀ {A : Set} (⇒ : A → A → Set) → diamond ⇒
@@ -75,7 +60,7 @@ rtc-diamond ⇒ dia tu (trans tx xv)
 ...    | ⟨ w , ⟨ vw , yw ⟩ ⟩ = ⟨ w , ⟨ (trans uy yw) , vw ⟩ ⟩
 
 
--- LAMBDA MU SYNTAX
+---------------- LAMBDA MU SYNTAX ----------------
 Id : Set
 Id = String
 Name : Set
@@ -107,8 +92,8 @@ data Value : Term → Set where
   Vƛ : ∀ {x : Id} {M : Term} → Value (ƛ x ⇒ M)
 
 
--- LAMBDA MU TERM SUBSTITUTION
--- simple term substitution
+---------------- LAMBDA MU TERM SUBSTITUTION ----------------
+-- Simple term substitution
 _[_/_]β  : Term    → Term → Id → Term
 _[_/_]β' : Command → Term → Id → Command
 
@@ -126,7 +111,7 @@ _[_/_]β' : Command → Term → Id → Command
 
 ([ α ] M) [ N / x ]β'           = [ α ] M [ N / x ]β
 
--- simple name substitution
+-- Simple name substitution
 _[_/_]ρ  : Term    → Name → Name → Term
 _[_/_]ρ' : Command → Name → Name → Command
 
@@ -142,7 +127,7 @@ _[_/_]ρ' : Command → Name → Name → Command
 ...                      | yes _ = [ α ] M [ α / β ]ρ
 ...                      | no  _ = [ γ ] M [ α / β ]ρ
 
--- right structural substitution
+-- Right structural substitution
 _[_∙_/_]r  : Term    → Term → Name → Name → Term
 _[_∙_/_]r' : Command → Term → Name → Name → Command
 (` x)     [ N ∙ γ / α ]r             = ` x
@@ -157,7 +142,7 @@ _[_∙_/_]r' : Command → Term → Name → Name → Command
 ...                          | yes _ = [ γ ] M [ N ∙ γ / α ]r · N
 ...                          | no  _ = [ β ] M [ N ∙ γ / α ]r
 
--- left structural substitution
+-- Left structural substitution
 _[_∙_/_]l  : Term    → Term → Name → Name → Term
 _[_∙_/_]l' : Command → Term → Name → Name → Command
 (` x)     [ N ∙ γ / α ]l             = ` x
@@ -173,7 +158,7 @@ _[_∙_/_]l' : Command → Term → Name → Name → Command
 ...                          | no  _ = [ β ] M [ N ∙ γ / α ]l
 
 
--- LMUV SINGLE STEP REDUCTION
+---------------- LMUV SINGLE STEP REDUCTION ----------------
 infixr 4 _⟶_
 infixr 4 _⟶'_
 data _⟶_  : Term    → Term    → Set
@@ -224,7 +209,7 @@ data _⟶'_ where
     ----------------
     → [ α ] M ⟶' [ α ] M'
 
--- Reflexive transitive closure of lmuv reduction
+-- Reflexive transitive closure of lmuv single step reduction
 infixr 4 _⟶*_
 infixr 4 _⟶*'_
 _⟶*_  : Term    → Term    → Set
@@ -276,7 +261,7 @@ app* : ∀ {M M' N N' : Term}
 app* mm' nn' = trans-rtc (app-l* mm') (app-r* nn')
 
 
--- LMUV PARALLEL REDUCTION
+---------------- LMUV PARALLEL REDUCTION ----------------
 infixr 4 _==>_
 infixr 4 _==>'_
 data _==>_  : Term    → Term    → Set
@@ -353,8 +338,8 @@ par-refl  {μ α ⇒ C} = [3] par-refl'
 par-refl' {[ α ] M} = [5] par-refl
 
 
--- SINGLE STEP AND PARALLEL REDUCTION HAVE THE SAME REFLEXIVE TRANSITIVE CLOSURE
-
+---------------- ⟶* = ==>* ----------------
+-- Forward direction
 sin-par  : ∀ {M N : Term}    → M ⟶ N  → M ==> N
 sin-par' : ∀ {C D : Command} → C ⟶' D → C ==>' D
 sin-par  ([β] val)     = [7] val par-refl par-refl
@@ -371,6 +356,7 @@ sins-pars : ∀ {M N : Term} → M ⟶* N → M ==>* N
 sins-pars reflx         = reflx
 sins-pars (trans mp pn) = trans (sins-pars mp) (sin-par pn)
 
+-- Backward direction
 par-sins  : ∀ {M N : Term}    → M ==> N  → M ⟶* N
 par-sins' : ∀ {C D : Command} → C ==>' D → C ⟶*' D
 par-sins   [1]            = reflx
@@ -382,7 +368,6 @@ par-sins  ([8] mμ nn')    = trans (app* (par-sins mμ) (par-sins nn')) [μr]
 par-sins  ([9] val mv mμ) = trans (app* (par-sins mv) (par-sins mμ)) ([μl] val)
 par-sins' ([5] mm')       = name* (par-sins mm')
 par-sins' ([6] mμ)        = trans (name* (par-sins mμ)) [ρ]
-
 
 pars-sins : ∀ {M N : Term} → M ==>* N → M ⟶* N
 pars-sins reflx         = reflx
