@@ -1,8 +1,10 @@
 module Definitions where
 
 open import Data.Product using (∃-syntax; _×_) renaming (_,_ to ⟨_,_⟩)
-open import Data.String using (String; _≟_)
+open import Data.String using (String) renaming (_≟_ to _≟s_)
 open import Relation.Nullary using (Dec; yes; no; ¬_)
+open import Data.Nat using (ℕ; zero; suc; _⊓_; _>_) renaming (_≟_ to _≟n_)
+-- open import Relation.Binary.PropositionalEquality using (_≡_; _≟_)
 
 ---------------- PROPERTIES ABOUT RELATIONS ----------------
 diamond : ∀ {A : Set} → (_⇒_ : A → A → Set) → Set
@@ -14,7 +16,6 @@ diamond {A} _⇒_ = ∀ {t u v : A}
 
 -- Reflexive transitive closure
 data rtc {A : Set} (⇒ : A → A → Set) : A → A → Set where
-
   reflx : ∀ {M : A}
     --------
     → rtc ⇒ M M
@@ -33,14 +34,14 @@ trans-rtc : {A : Set} {⇒ : A → A → Set} {M N P : A}
 trans-rtc mn reflx = mn
 trans-rtc mn (trans nq qp) = trans (trans-rtc mn nq) qp
 
--- If t => u and t ===> v, then there exists w such that u ===> w and v => w
-parallelogram-lemma : ∀ {A : Set} (⇒ : A → A → Set) → diamond ⇒
+-- For => satisfying the diamond property, if t => u and t ===> v, then there exists w such that u ===> w and v => w
+parallelogram-lemma : ∀ {A : Set} (⇒ : A → A → Set) 
+  → diamond ⇒
   → ∀ {t u v : A}
   → ⇒ t u
   → rtc ⇒ t v
   ------------
   → ∃[ w ](rtc ⇒ u w × ⇒ v w)
-
 parallelogram-lemma ⇒ dia {u = u} tu reflx = ⟨ u , ⟨ reflx , tu ⟩ ⟩
 parallelogram-lemma ⇒ dia tu (trans tx xv)
   with parallelogram-lemma ⇒ dia tu tx
@@ -49,8 +50,10 @@ parallelogram-lemma ⇒ dia tu (trans tx xv)
 ...    | ⟨ w , ⟨ yw , vw ⟩ ⟩ = ⟨ w , ⟨ (trans uy yw) , vw ⟩ ⟩
 
 -- If a relation satisfies the diamond property, so does its reflexive transitive closure
-rtc-diamond : ∀ {A : Set} (⇒ : A → A → Set) → diamond ⇒ → diamond (rtc ⇒)
-
+rtc-diamond : ∀ {A : Set} (⇒ : A → A → Set) 
+  → diamond ⇒ 
+  ----------------
+  → diamond (rtc ⇒)
 rtc-diamond ⇒ dia {v = v} reflx tv = ⟨ v , ⟨ tv , reflx ⟩ ⟩
 rtc-diamond ⇒ dia {u = u} tu reflx = ⟨ u , ⟨ reflx , tu ⟩ ⟩
 rtc-diamond ⇒ dia tu (trans tx xv)
@@ -64,13 +67,13 @@ rtc-diamond ⇒ dia tu (trans tx xv)
 Id : Set
 Id = String
 Name : Set
-Name = String
+Name = ℕ
 
-infixr 5 ƛ_⇒_
-infixr 5 μ_⇒_
-infix 5 [_]_
-infixl 7 _·_
-infix 9 `_
+infixr 5 ƛ_⇒_ -- Lambda abstraction
+infixr 5 μ_⇒_ -- Mu abstraction
+infix 5 [_]_  -- Naming
+infixl 7 _·_  -- Application
+infix 9 `_    -- Variable
 
 data Term : Set
 data Command : Set
@@ -85,7 +88,7 @@ data Command where
   [_]_ : Name → Term → Command
 
 myterm : Term
-myterm = ƛ "x" ⇒ μ "a" ⇒ [ "a" ] ` "x" · ` "y"
+myterm = (ƛ "x" ⇒ μ zero ⇒ [ zero ] ` "x" · ` "y") · (ƛ "z" ⇒ ` "z")
 
 data Value : Term → Set where
   Vx : ∀ {x : Id}            → Value (` x)
@@ -93,15 +96,25 @@ data Value : Term → Set where
 
 
 ---------------- LAMBDA MU TERM SUBSTITUTION ----------------
+-- Mapping of terms to fresh names
+max  : Term    → Name
+max' : Command → Name
+
+max  (` _)     = zero
+max  (ƛ _ ⇒ M) = max M
+max  (μ α ⇒ C) = α ⊓ max' C
+max  (M · N)   = max M ⊓ max N
+max' ([ α ] M) = α ⊓ max M
+
 -- Simple term substitution
 _[_/_]β  : Term    → Term → Id → Term
 _[_/_]β' : Command → Term → Id → Command
 
-(` y)     [ N / x ]β with x ≟ y
+(` y)     [ N / x ]β with x ≟s y
 ...                     | yes _ = N
 ...                     | no  _ = ` y
 
-(ƛ y ⇒ M) [ N / x ]β with x ≟ y
+(ƛ y ⇒ M) [ N / x ]β with x ≟s y
 ...                     | yes _ = ƛ y ⇒ M
 ...                     | no  _ = ƛ y ⇒ M [ N / x ]β
 
@@ -123,7 +136,7 @@ _[_/_]ρ' : Command → Name → Name → Command
 
 (μ γ ⇒ C) [ α / β ]ρ             = μ γ ⇒ C [ α / β ]ρ'
 
-([ γ ] M) [ α / β ]ρ' with β ≟ γ
+([ γ ] M) [ α / β ]ρ' with β ≟n γ
 ...                      | yes _ = [ α ] M [ α / β ]ρ
 ...                      | no  _ = [ γ ] M [ α / β ]ρ
 
@@ -138,7 +151,7 @@ _[_∙_/_]r' : Command → Term → Name → Name → Command
 
 (μ β ⇒ C) [ N ∙ γ / α ]r             = μ β ⇒ C [ N ∙ γ / α ]r'
 
-([ β ] M) [ N ∙ γ / α ]r' with α ≟ β
+([ β ] M) [ N ∙ γ / α ]r' with α ≟n β
 ...                          | yes _ = [ γ ] M [ N ∙ γ / α ]r · N
 ...                          | no  _ = [ β ] M [ N ∙ γ / α ]r
 
@@ -153,7 +166,7 @@ _[_∙_/_]l' : Command → Term → Name → Name → Command
 
 (μ β ⇒ C) [ N ∙ γ / α ]l             = μ β ⇒ C [ N ∙ γ / α ]l'
 
-([ β ] M) [ N ∙ γ / α ]l' with α ≟ β
+([ β ] M) [ N ∙ γ / α ]l' with α ≟n β
 ...                          | yes _ = [ γ ] N · M [ N ∙ γ / α ]l
 ...                          | no  _ = [ β ] M [ N ∙ γ / α ]l
 
@@ -171,10 +184,12 @@ data _⟶_ where
     → (ƛ x ⇒ M) · V ⟶ M [ V / x ]β
 
   [μr] : ∀ {α γ : Name} {N : Term} {C : Command}
+    → γ > max ((μ α ⇒ C) · N)
     ----------------
     → (μ α ⇒ C) · N ⟶ μ γ ⇒ C [ N ∙ γ / α ]r'
 
   [μl] : ∀ {α γ : Name} {V : Term} {C : Command}
+    → γ > max (V · (μ α ⇒ C))
     → Value V
     ----------------
     → V · (μ α ⇒ C) ⟶ μ γ ⇒ C [ V ∙ γ / α ]l'
@@ -198,6 +213,11 @@ data _⟶_ where
     → C ⟶' C'
     ----------------
     → μ α ⇒ C ⟶ μ α ⇒ C'
+
+  [α] : ∀ {α γ : Name} {C : Command}
+    → γ > max' C
+    ----------------
+    → μ α ⇒ C ⟶ μ γ ⇒ C [ γ / α ]ρ'
 
 data _⟶'_ where
   [ρ] : ∀ {α β : Name} {C : Command}
@@ -296,17 +316,24 @@ data _==>_ where
     → M · N ==> M' [ V / x ]β
 
   [8] : ∀ {α γ : Name} {M N N' : Term} {C : Command}
+    → γ > max ((μ α ⇒ C) · N')
     → M ==> μ α ⇒ C
     → N ==> N'
     ----------------
     → M · N ==> μ γ ⇒ C [ N' ∙ γ / α ]r'
 
   [9] : ∀ {α γ : Name} {M V N : Term} {C : Command}
+    → γ > max (V · (μ α ⇒ C))
     → Value V
     → M ==> V
     → N ==> μ α ⇒ C
     ----------------
     → M · N ==> μ γ ⇒ C [ V ∙ γ / α ]l'
+
+  [0] : ∀ {α γ : Name} {C : Command}
+    → γ > max' C
+    ----------------
+    → μ α ⇒ C ==> μ γ ⇒ C [ γ / α ]ρ'
 
 data _==>'_ where
   [5] : ∀ {α : Name} {M M' : Term}
@@ -342,15 +369,16 @@ par-refl' {[ α ] M} = [5] par-refl
 -- Forward direction
 sin-par  : ∀ {M N : Term}    → M ⟶ N  → M ==> N
 sin-par' : ∀ {C D : Command} → C ⟶' D → C ==>' D
-sin-par  ([β] val)     = [7] val par-refl par-refl
-sin-par   [μr]         = [8] par-refl par-refl
-sin-par  ([μl] val)    = [9] val par-refl par-refl
-sin-par  ([app-l] mm') = [4] (sin-par mm') par-refl
-sin-par  ([app-r] nn') = [4] par-refl (sin-par nn')
-sin-par  ([abs] mm')   = [2] (sin-par mm')
-sin-par  ([mu] cc')    = [3] (sin-par' cc')
-sin-par'  [ρ]          = [6] par-refl
-sin-par' ([name] mm')  = [5] (sin-par mm')
+sin-par  ([β] val)        = [7] val par-refl par-refl
+sin-par  ([μr] fresh)     = [8] fresh par-refl par-refl
+sin-par  ([μl] fresh val) = [9] fresh val par-refl par-refl
+sin-par  ([app-l] mm')    = [4] (sin-par mm') par-refl
+sin-par  ([app-r] nn')    = [4] par-refl (sin-par nn')
+sin-par  ([abs] mm')      = [2] (sin-par mm')
+sin-par  ([mu] cc')       = [3] (sin-par' cc')
+sin-par  ([α] fresh)      = [0] fresh
+sin-par'  [ρ]             = [6] par-refl
+sin-par' ([name] mm')     = [5] (sin-par mm')
 
 sins-pars : ∀ {M N : Term} → M ⟶* N → M ==>* N
 sins-pars reflx         = reflx
@@ -364,8 +392,9 @@ par-sins  ([2] mm')       = abs* (par-sins mm')
 par-sins  ([3] cc')       = mu* (par-sins' cc')
 par-sins  ([4] mm' nn')   = app* (par-sins mm') (par-sins nn')
 par-sins  ([7] val mλ nv) = trans (app* (par-sins mλ) (par-sins nv)) ([β] val)
-par-sins  ([8] mμ nn')    = trans (app* (par-sins mμ) (par-sins nn')) [μr]
-par-sins  ([9] val mv mμ) = trans (app* (par-sins mv) (par-sins mμ)) ([μl] val)
+par-sins  ([8] fresh mμ nn')    = trans (app* (par-sins mμ) (par-sins nn')) ([μr] fresh)
+par-sins  ([9] fresh val mv mμ) = trans (app* (par-sins mv) (par-sins mμ)) ([μl] fresh val)
+par-sins  ([0] fresh) = trans reflx ([α] fresh)
 par-sins' ([5] mm')       = name* (par-sins mm')
 par-sins' ([6] mμ)        = trans (name* (par-sins mμ)) [ρ]
 
