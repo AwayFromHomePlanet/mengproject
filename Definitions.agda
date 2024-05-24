@@ -3,14 +3,17 @@ module Definitions where
 open import Data.Product using (∃-syntax; _×_) renaming (_,_ to ⟨_,_⟩)
 open import Data.String using (String; _≟_)
 open import Relation.Nullary using (Dec; yes; no; ¬_)
+open import Data.Unit using (⊤; tt)
+open import Data.Empty using (⊥; ⊥-elim)
+open import Data.Bool.Base using (Bool; true; false; T; _∧_; _∨_; not)
 
 ---------------- PROPERTIES ABOUT RELATIONS ----------------
-diamond : ∀ {A : Set} → (_⇒_ : A → A → Set) → Set
-diamond {A} _⇒_ = ∀ {t u v : A}
+diamond : ∀ {A : Set} → (_⇒_ : A → A → Set) → (_=α_ : A → A → Set) → Set
+diamond {A} _⇒_ _=α_ = ∀ {t u v : A}
     → t ⇒ u
     → t ⇒ v
       --------------
-    → ∃[ w ](u ⇒ w × v ⇒ w)
+    → ∃[ w ] ∃[ x ](u ⇒ w  ×  v ⇒ x  ×  w =α x)
 
 -- Reflexive transitive closure
 data rtc {A : Set} (⇒ : A → A → Set) : A → A → Set where
@@ -34,7 +37,7 @@ trans-rtc mn reflx = mn
 trans-rtc mn (trans nq qp) = trans (trans-rtc mn nq) qp
 
 -- If t => u and t ===> v, then there exists w such that u ===> w and v => w
-parallelogram-lemma : ∀ {A : Set} (⇒ : A → A → Set) → diamond ⇒
+{-parallelogram-lemma : ∀ {A : Set} (⇒ : A → A → Set) → diamond ⇒
   → ∀ {t u v : A}
   → ⇒ t u
   → rtc ⇒ t v
@@ -57,7 +60,7 @@ rtc-diamond ⇒ dia tu (trans tx xv)
   with rtc-diamond ⇒ dia tu tx
 ...  | ⟨ y , ⟨ uy , xy ⟩ ⟩
     with parallelogram-lemma ⇒ dia xv xy
-...    | ⟨ w , ⟨ vw , yw ⟩ ⟩ = ⟨ w , ⟨ (trans uy yw) , vw ⟩ ⟩
+...    | ⟨ w , ⟨ vw , yw ⟩ ⟩ = ⟨ w , ⟨ (trans uy yw) , vw ⟩ ⟩-}
 
 
 ---------------- LAMBDA MU SYNTAX ----------------
@@ -90,6 +93,40 @@ myterm = ƛ "x" ⇒ μ "a" ⇒ [ "a" ] ` "x" · ` "y"
 data Value : Term → Set where
   Vx : ∀ {x : Id}            → Value (` x)
   Vƛ : ∀ {x : Id} {M : Term} → Value (ƛ x ⇒ M)
+
+_∉ᵥ_  : Id → Term    → Bool
+_∉ᵥ'_ : Id → Command → Bool
+
+x ∉ᵥ  (` y) with x ≟ y
+...           | yes _     = false
+...           | no  _     = true
+
+x ∉ᵥ  (ƛ y ⇒ M) with x ≟ y
+...               | yes _ = true
+...               | no  _ = x ∉ᵥ M
+
+x ∉ᵥ  (M · N)              = x ∉ᵥ M ∧ x ∉ᵥ N
+
+x ∉ᵥ  (μ α ⇒ C)            = x ∉ᵥ' C
+
+x ∉ᵥ' ([ α ] M)            = x ∉ᵥ M
+
+_∉ₙ_  : Name → Term    → Bool
+_∉ₙ'_ : Name → Command → Bool
+
+α ∉ₙ  (` x) = false
+
+α ∉ₙ  (ƛ x ⇒ M) = α ∉ₙ M
+
+α ∉ₙ  (M · N)              = α ∉ₙ M ∧ α ∉ₙ N
+
+α ∉ₙ  (μ β ⇒ C) with α ≟ β
+... | yes _ = true        
+... | no _ = α ∉ₙ' C
+
+α ∉ₙ' ([ β ] M)  with α ≟ β
+... | yes _ = false           
+... | no _ = α ∉ₙ M
 
 
 ---------------- LAMBDA MU TERM SUBSTITUTION ----------------
@@ -156,6 +193,52 @@ _[_∙_/_]l' : Command → Term → Name → Name → Command
 ([ β ] M) [ N ∙ γ / α ]l' with α ≟ β
 ...                          | yes _ = [ γ ] N · M [ N ∙ γ / α ]l
 ...                          | no  _ = [ β ] M [ N ∙ γ / α ]l
+
+
+---------------- α-EQUIVALENCE ----------------
+infixr 4 _=α_
+infixr 4 _=α'_
+data _=α_  : Term    → Term    → Set
+data _=α'_ : Command → Command → Set
+
+data _=α_ where
+  [α-var] : ∀ {x : Id}
+    ----------------
+    → ` x =α ` x
+
+  [α-λ] : ∀ {x y : Id} {M M' : Term}
+    → T (y ∉ᵥ M')
+    → M =α M'
+    ----------------
+    → ƛ x ⇒ M =α ƛ y ⇒ M' [ ` y / x ]β
+
+  [α-μ] : ∀ {α β : Name} {C C' : Command}
+    → T (β ∉ₙ' C')
+    → C =α' C'
+    ----------------
+    → μ α ⇒ C =α μ β ⇒ C' [ β / α ]ρ'
+
+  [α-abs] : ∀ {x : Id} {M M' : Term}
+    → M =α M'
+    ----------------
+    → ƛ x ⇒ M =α ƛ x ⇒ M'
+
+  [α-app] : ∀ {M M' N N' : Term}
+    → M =α M'
+    → N =α N'
+    ----------------
+    → M · N =α M' · N'
+
+  [α-mu] : ∀ {β : Name} {C C' : Command}
+    → C =α' C'
+    ----------------
+    → μ β ⇒ C =α μ β ⇒ C'
+
+data _=α'_ where
+  [α-name] : ∀ {β : Name} {M M' : Term}
+    → M =α M'
+    ----------------
+    → [ β ] M =α' [ β ] M'
 
 
 ---------------- LMUV SINGLE STEP REDUCTION ----------------
