@@ -4,7 +4,6 @@ open import Data.Product using (∃-syntax; _×_) renaming (_,_ to ⟨_,_⟩)
 open import Data.String using (String) renaming (_≟_ to _≟s_)
 open import Relation.Nullary using (Dec; yes; no; ¬_)
 open import Data.Nat using (ℕ; zero; suc; _⊓_; _>_) renaming (_≟_ to _≟n_)
--- open import Relation.Binary.PropositionalEquality using (_≡_; _≟_)
 
 ---------------- PROPERTIES ABOUT RELATIONS ----------------
 diamond : ∀ {A : Set} → (_⇒_ : A → A → Set) → Set
@@ -106,6 +105,15 @@ max  (μ α ⇒ C) = α ⊓ max' C
 max  (M · N)   = max M ⊓ max N
 max' ([ α ] M) = α ⊓ max M
 
+infixl 10 _[_/_]β
+infixl 10 _[_/_]β'
+infixl 10 _[_/_]ρ
+infixl 10 _[_/_]ρ'
+infixl 10 _[_∙_/_]r 
+infixl 10 _[_∙_/_]r'
+infixl 10 _[_∙_/_]l 
+infixl 10 _[_∙_/_]l'
+
 -- Simple term substitution
 _[_/_]β  : Term    → Term → Id → Term
 _[_/_]β' : Command → Term → Id → Command
@@ -135,6 +143,9 @@ _[_/_]ρ' : Command → Name → Name → Command
 (M · N)   [ α / β ]ρ             =  M [ α / β ]ρ · N [ α / β ]ρ
 
 (μ γ ⇒ C) [ α / β ]ρ             = μ γ ⇒ C [ α / β ]ρ'
+
+-- ([ β ] M) [ α / β ]ρ' = [ α ] M [ α / β ]ρ
+-- ([ γ ] M) [ α / β ]ρ' = [ γ ] M [ α / β ]ρ
 
 ([ γ ] M) [ α / β ]ρ' with β ≟n γ
 ...                      | yes _ = [ α ] M [ α / β ]ρ
