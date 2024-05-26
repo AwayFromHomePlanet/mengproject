@@ -19,11 +19,49 @@ val-red-val : ∀ {V V' : Term} → V ==> V' → Value V → Value V'
 val-red-val [1] Vx = Vx
 val-red-val ([2] vv') Vƛ = Vƛ
 
--- The main theorem: If P0 ==> P1 and P0 ==> P2, there exists some P3 such that P1 ==> P3 and P2 ==> P3
-==>-diamond  : diamond _==>_
-==>-diamond' : diamond _==>'_
+-- Values are only α-equivalent to values
+val-α-val : ∀ {V V' : Term} → V =α V' → Value V → Value V'
+val-α-val [α-var] Vx = Vx
+val-α-val ([α-λ] _ _) Vƛ = Vƛ
+val-α-val ([α-abs] _) Vƛ = Vƛ
 
-==>-diamond ([1] {x}) [1] = ⟨ (` x) , ⟨ [1] , [1] ⟩ ⟩
+-- The main theorem: If P0 ==> P1 and P0 ==> P2, there exists some P3 such that P1 ==> P3 and P2 ==> P3
+==>-diamond  : diamond _==>_  _=α_
+==>-diamond' : diamond _==>'_ _=α'_
+
+==>-diamond ([1] {x}) [1] = ⟨ ` x , ⟨ ` x , ⟨ [α-var] , ⟨ [1] , [1] ⟩ ⟩ ⟩ ⟩
+
+
+==>-diamond ([2] {x} m0m1) ([2] m0m2) with ==>-diamond m0m1 m0m2
+... | ⟨ m3 , ⟨ m4 , ⟨ m3=m4 , ⟨ m1m3 , m2m4 ⟩ ⟩ ⟩ ⟩ = ⟨ (ƛ x ⇒ m3) , ⟨ (ƛ x ⇒ m4) , ⟨ ([α-abs] m3=m4) , ⟨ ([2] m1m3) , ([2] m2m4) ⟩ ⟩ ⟩ ⟩
+
+
+==>-diamond ([3] {α} c0c1) ([3] c0c2) with ==>-diamond' c0c1 c0c2
+... | ⟨ c3 , ⟨ c4 , ⟨ c3=c4 , ⟨ c1c3 , c2c4 ⟩ ⟩ ⟩ ⟩ = ⟨ μ α ⇒ c3 , ⟨ μ α ⇒ c4 , ⟨ [α-mu] c3=c4 , ⟨ [3] c1c3 , [3] c2c4 ⟩ ⟩ ⟩ ⟩
+
+
+==>-diamond ([4] m0m1 n0n1) ([4] m0m2 n0n2) with ==>-diamond m0m1 m0m2
+... | ⟨ m3 , ⟨ m4 , ⟨ m3=m4 , ⟨ m1m3 , m2m4 ⟩ ⟩ ⟩ ⟩ with ==>-diamond n0n1 n0n2
+... | ⟨ n3 , ⟨ n4 , ⟨ n3=n4 , ⟨ n1n3 , n2n4 ⟩ ⟩ ⟩ ⟩ = ⟨ (m3 · n3) , ⟨ (m4 · n4) , ⟨ ([α-app] m3=m4 n3=n4) , ⟨ ([4] m1m3 n1n3) , ([4] m2m4 n2n4) ⟩ ⟩ ⟩ ⟩
+
+==>-diamond ([4] m0m1 n0n1) ([7] {x} val m0λm2 n0v2) = {!   !}
+
+==>-diamond ([4] m0m1 n0n1) ([8] tv tv₁) = {!   !}
+
+==>-diamond ([4] m0m1 n0n1) ([9] x tv tv₁) = {!   !}
+
+
+==>-diamond ([7] x tu tu₁) tv = {!   !}
+
+
+==>-diamond ([8] tu tu₁) tv = {!   !}
+
+
+==>-diamond ([9] x tu tu₁) tv = {!   !}
+
+==>-diamond' tu tv = {!   !}
+
+{-==>-diamond ([1] {x}) [1] = ⟨ (` x) , ⟨ [1] , [1] ⟩ ⟩
 
 
 ==>-diamond ([2] {x} m0m1) ([2] m0m2) with ==>-diamond m0m1 m0m2
@@ -106,9 +144,10 @@ val-red-val ([2] vv') Vƛ = Vƛ
 ==>-diamond' ([5] {α} m0m1) ([6] m0μc2) with ==>-diamond m0m1 m0μc2
 ... | ⟨ μ β ⇒ c3 , ⟨ m1μc3 , [3] c2c3 ⟩ ⟩ = ⟨ c3 [ α / β ]ρ' , ⟨ [6] m1μc3 , ρ-subst-lemma' c2c3 ⟩ ⟩
 
-
+ 
 ==>-diamond' ([6] m0μc1) ([5] {α} m0m2) with ==>-diamond m0μc1 m0m2 
 ... | ⟨ μ β ⇒ c3 , ⟨ [3] c1c3 , m2μc3 ⟩ ⟩ = ⟨ c3 [ α / β ]ρ' , ⟨ ρ-subst-lemma' c1c3 , [6] m2μc3 ⟩ ⟩
-
+ 
 ==>-diamond' ([6] {α} {β} m0μc1) ([6] m0μc2) with ==>-diamond m0μc1 m0μc2
 ... | ⟨ μ β ⇒ c3 , ⟨ [3] c1c3 , [3] c2c3 ⟩ ⟩ = ⟨ c3 [ α / β ]ρ' , ⟨ ρ-subst-lemma' c1c3 , ρ-subst-lemma' c2c3 ⟩ ⟩
+-}

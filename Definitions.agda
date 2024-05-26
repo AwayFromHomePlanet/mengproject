@@ -13,7 +13,7 @@ diamond {A} _⇒_ _=α_ = ∀ {t u v : A}
     → t ⇒ u
     → t ⇒ v
       --------------
-    → ∃[ w ] ∃[ x ](u ⇒ w  ×  v ⇒ x  ×  w =α x)
+    → ∃[ w ] ∃[ x ](w =α x  ×  u ⇒ w  ×  v ⇒ x)
 
 -- Reflexive transitive closure
 data rtc {A : Set} (⇒ : A → A → Set) : A → A → Set where
@@ -94,39 +94,48 @@ data Value : Term → Set where
   Vx : ∀ {x : Id}            → Value (` x)
   Vƛ : ∀ {x : Id} {M : Term} → Value (ƛ x ⇒ M)
 
-_∉ᵥ_  : Id → Term    → Bool
-_∉ᵥ'_ : Id → Command → Bool
+_∈ᵥ_  : Id → Term    → Bool
+_∈ᵥ'_ : Id → Command → Bool
 
-x ∉ᵥ  (` y) with x ≟ y
-...           | yes _     = false
-...           | no  _     = true
+x ∈ᵥ  (` y) with x ≟ y
+...           | yes _     = true
+...           | no  _     = false
 
-x ∉ᵥ  (ƛ y ⇒ M) with x ≟ y
-...               | yes _ = true
-...               | no  _ = x ∉ᵥ M
+x ∈ᵥ  (ƛ y ⇒ M) with x ≟ y
+...               | yes _ = false
+...               | no  _ = x ∈ᵥ M
 
-x ∉ᵥ  (M · N)              = x ∉ᵥ M ∧ x ∉ᵥ N
+x ∈ᵥ  (M · N)              = x ∈ᵥ M ∧ x ∈ᵥ N
 
-x ∉ᵥ  (μ α ⇒ C)            = x ∉ᵥ' C
+x ∈ᵥ  (μ α ⇒ C)            = x ∈ᵥ' C
 
-x ∉ᵥ' ([ α ] M)            = x ∉ᵥ M
+x ∈ᵥ' ([ α ] M)            = x ∈ᵥ M
 
-_∉ₙ_  : Name → Term    → Bool
-_∉ₙ'_ : Name → Command → Bool
+_∈ₙ_  : Name → Term    → Bool
+_∈ₙ'_ : Name → Command → Bool
 
-α ∉ₙ  (` x) = false
+α ∈ₙ  (` x) = false
 
-α ∉ₙ  (ƛ x ⇒ M) = α ∉ₙ M
+α ∈ₙ  (ƛ x ⇒ M) = α ∈ₙ M
 
-α ∉ₙ  (M · N)              = α ∉ₙ M ∧ α ∉ₙ N
+α ∈ₙ  (M · N)              = α ∈ₙ M ∧ α ∈ₙ N
 
-α ∉ₙ  (μ β ⇒ C) with α ≟ β
-... | yes _ = true        
-... | no _ = α ∉ₙ' C
+α ∈ₙ  (μ β ⇒ C) with α ≟ β
+... | yes _ = false       
+... | no _ = α ∈ₙ' C
 
-α ∉ₙ' ([ β ] M)  with α ≟ β
-... | yes _ = false           
-... | no _ = α ∉ₙ M
+α ∈ₙ' ([ β ] M)  with α ≟ β
+... | yes _ = true      
+... | no _ = α ∈ₙ M
+
+_∉ᵥ_  : Id → Term    → Set
+_∉ᵥ'_ : Id → Command → Set
+_∉ₙ_  : Name → Term    → Set
+_∉ₙ'_ : Name → Command → Set
+_ ∉ᵥ _ = T (not (_ ∈ᵥ _))
+_ ∉ᵥ' _ = T (not (_ ∈ᵥ' _))
+_ ∉ₙ _ = T (not (_ ∈ₙ _))
+_ ∉ₙ' _ = T (not (_ ∈ₙ' _))
 
 
 ---------------- LAMBDA MU TERM SUBSTITUTION ----------------
@@ -207,13 +216,13 @@ data _=α_ where
     → ` x =α ` x
 
   [α-λ] : ∀ {x y : Id} {M M' : Term}
-    → T (y ∉ᵥ M')
+    → y ∉ᵥ M'
     → M =α M'
     ----------------
     → ƛ x ⇒ M =α ƛ y ⇒ M' [ ` y / x ]β
 
   [α-μ] : ∀ {α β : Name} {C C' : Command}
-    → T (β ∉ₙ' C')
+    → β ∉ₙ' C'
     → C =α' C'
     ----------------
     → μ α ⇒ C =α μ β ⇒ C' [ β / α ]ρ'
@@ -254,10 +263,12 @@ data _⟶_ where
     → (ƛ x ⇒ M) · V ⟶ M [ V / x ]β
 
   [μr] : ∀ {α γ : Name} {N : Term} {C : Command}
+    → γ ∉ₙ ((μ α ⇒ C) · N)
     ----------------
     → (μ α ⇒ C) · N ⟶ μ γ ⇒ C [ N ∙ γ / α ]r'
 
   [μl] : ∀ {α γ : Name} {V : Term} {C : Command}
+    → γ ∉ₙ (V · (μ α ⇒ C))
     → Value V
     ----------------
     → V · (μ α ⇒ C) ⟶ μ γ ⇒ C [ V ∙ γ / α ]l'
@@ -379,12 +390,14 @@ data _==>_ where
     → M · N ==> M' [ V / x ]β
 
   [8] : ∀ {α γ : Name} {M N N' : Term} {C : Command}
+    → γ ∉ₙ ((μ α ⇒ C) · N')
     → M ==> μ α ⇒ C
     → N ==> N'
     ----------------
     → M · N ==> μ γ ⇒ C [ N' ∙ γ / α ]r'
 
   [9] : ∀ {α γ : Name} {M V N : Term} {C : Command}
+    → γ ∉ₙ (V · (μ α ⇒ C))
     → Value V
     → M ==> V
     → N ==> μ α ⇒ C
@@ -425,15 +438,15 @@ par-refl' {[ α ] M} = [5] par-refl
 -- Forward direction
 sin-par  : ∀ {M N : Term}    → M ⟶ N  → M ==> N
 sin-par' : ∀ {C D : Command} → C ⟶' D → C ==>' D
-sin-par  ([β] val)     = [7] val par-refl par-refl
-sin-par   [μr]         = [8] par-refl par-refl
-sin-par  ([μl] val)    = [9] val par-refl par-refl
-sin-par  ([app-l] mm') = [4] (sin-par mm') par-refl
-sin-par  ([app-r] nn') = [4] par-refl (sin-par nn')
-sin-par  ([abs] mm')   = [2] (sin-par mm')
-sin-par  ([mu] cc')    = [3] (sin-par' cc')
-sin-par'  [ρ]          = [6] par-refl
-sin-par' ([name] mm')  = [5] (sin-par mm')
+sin-par  ([β] val)      = [7] val par-refl par-refl
+sin-par  ([μr] new)     = [8] new par-refl par-refl
+sin-par  ([μl] new val) = [9] new val par-refl par-refl
+sin-par  ([app-l] mm')  = [4] (sin-par mm') par-refl
+sin-par  ([app-r] nn')  = [4] par-refl (sin-par nn')
+sin-par  ([abs] mm')    = [2] (sin-par mm')
+sin-par  ([mu] cc')     = [3] (sin-par' cc')
+sin-par'  [ρ]           = [6] par-refl
+sin-par' ([name] mm')   = [5] (sin-par mm')
 
 sins-pars : ∀ {M N : Term} → M ⟶* N → M ==>* N
 sins-pars reflx         = reflx
@@ -442,15 +455,15 @@ sins-pars (trans mp pn) = trans (sins-pars mp) (sin-par pn)
 -- Backward direction
 par-sins  : ∀ {M N : Term}    → M ==> N  → M ⟶* N
 par-sins' : ∀ {C D : Command} → C ==>' D → C ⟶*' D
-par-sins   [1]            = reflx
-par-sins  ([2] mm')       = abs* (par-sins mm')
-par-sins  ([3] cc')       = mu* (par-sins' cc')
-par-sins  ([4] mm' nn')   = app* (par-sins mm') (par-sins nn')
-par-sins  ([7] val mλ nv) = trans (app* (par-sins mλ) (par-sins nv)) ([β] val)
-par-sins  ([8] mμ nn')    = trans (app* (par-sins mμ) (par-sins nn')) [μr]
-par-sins  ([9] val mv mμ) = trans (app* (par-sins mv) (par-sins mμ)) ([μl] val)
-par-sins' ([5] mm')       = name* (par-sins mm')
-par-sins' ([6] mμ)        = trans (name* (par-sins mμ)) [ρ]
+par-sins   [1]                = reflx
+par-sins  ([2] mm')           = abs* (par-sins mm')
+par-sins  ([3] cc')           = mu* (par-sins' cc')
+par-sins  ([4] mm' nn')       = app* (par-sins mm') (par-sins nn')
+par-sins  ([7] val mλ nv)     = trans (app* (par-sins mλ) (par-sins nv)) ([β] val)
+par-sins  ([8] new mμ nn')    = trans (app* (par-sins mμ) (par-sins nn')) ([μr] new)
+par-sins  ([9] new val mv mμ) = trans (app* (par-sins mv) (par-sins mμ)) ([μl] new val)
+par-sins' ([5] mm')           = name* (par-sins mm')
+par-sins' ([6] mμ)            = trans (name* (par-sins mμ)) [ρ]
 
 pars-sins : ∀ {M N : Term} → M ==>* N → M ⟶* N
 pars-sins reflx         = reflx
