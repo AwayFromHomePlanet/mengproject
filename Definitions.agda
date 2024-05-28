@@ -1,7 +1,7 @@
 module Definitions where
 
 open import Data.Product using (∃-syntax; _×_) renaming (_,_ to ⟨_,_⟩)
-open import Data.String using (String; _≟_)
+open import Data.String using (String; _≟_; _==_)
 open import Relation.Nullary using (Dec; yes; no; ¬_)
 open import Data.Unit using (⊤; tt)
 open import Data.Empty using (⊥; ⊥-elim)
@@ -95,52 +95,44 @@ data Value : Term → Set where
   Vx : ∀ {x : Id}            → Value (` x)
   Vƛ : ∀ {x : Id} {M : Term} → Value (ƛ x ⇒ M)
 
-_∈ᵥ_  : Id → Term    → Bool
-_∈ᵥ'_ : Id → Command → Bool
-
-x ∈ᵥ  (` y) with x ≟ y
-...           | yes _     = true
-...           | no  _     = false
-
-x ∈ᵥ  (ƛ y ⇒ M) with x ≟ y
-...               | yes _ = false
-...               | no  _ = x ∈ᵥ M
-
-x ∈ᵥ  (M · N)              = x ∈ᵥ M ∧ x ∈ᵥ N
-
-x ∈ᵥ  (μ α ⇒ C)            = x ∈ᵥ' C
-
-x ∈ᵥ' ([ α ] M)            = x ∈ᵥ M
-
-_∈ₙ_  : Name → Term    → Bool
-_∈ₙ'_ : Name → Command → Bool
-
-α ∈ₙ  (` x) = false
-
-α ∈ₙ  (ƛ x ⇒ M) = α ∈ₙ M
-
-α ∈ₙ  (M · N)              = α ∈ₙ M ∧ α ∈ₙ N
-
-α ∈ₙ  (μ β ⇒ C) with α ≟ β
-... | yes _ = false       
-... | no _ = α ∈ₙ' C
-
-α ∈ₙ' ([ β ] M)  with α ≟ β
-... | yes _ = true      
-... | no _ = α ∈ₙ M
-
 infix 4 _∉ᵥ_
 infix 4 _∉ᵥ'_
 infix 4 _∉ₙ_
 infix 4 _∉ₙ'_
+
 _∉ᵥ_  : Id → Term    → Set
 _∉ᵥ'_ : Id → Command → Set
+
+x ∉ᵥ  (` y) with x ≟ y
+...           | yes _     = ⊥
+...           | no  _     = ⊤
+
+x ∉ᵥ  (ƛ y ⇒ M) with x ≟ y
+...               | yes _ = ⊤
+...               | no  _ = x ∉ᵥ M
+
+x ∉ᵥ  (M · N)              = x ∉ᵥ M × x ∉ᵥ N
+
+x ∉ᵥ  (μ α ⇒ C)            = x ∉ᵥ' C
+
+x ∉ᵥ' ([ α ] M)            = x ∉ᵥ M
+
 _∉ₙ_  : Name → Term    → Set
 _∉ₙ'_ : Name → Command → Set
-x ∉ᵥ M  = T (not (x ∈ᵥ M))
-x ∉ᵥ' C = T (not (x ∈ᵥ' C))
-α ∉ₙ M  = T (not (α ∈ₙ M))
-α ∉ₙ' C = T (not (α ∈ₙ' C))
+
+α ∉ₙ  (` x) = ⊤
+
+α ∉ₙ  (ƛ x ⇒ M) = α ∉ₙ M
+
+α ∉ₙ  (M · N)              = α ∉ₙ M × α ∉ₙ N
+
+α ∉ₙ  (μ β ⇒ C) with α ≟ β
+... | yes _ = ⊤
+... | no _ = α ∉ₙ' C
+
+α ∉ₙ' ([ β ] M)  with α ≟ β
+... | yes _ = ⊥
+... | no _ = α ∉ₙ M
 
 
 ---------------- LAMBDA MU TERM SUBSTITUTION ----------------
@@ -217,7 +209,23 @@ _[_∙_/_]l' : Command → Term → Name → Name → Command
 ...                          | yes _ = [ γ ] N · M [ N ∙ γ / α ]l
 ...                          | no  _ = [ β ] M [ N ∙ γ / α ]l
 
-postulate ∉-subst : ∀ (x y : Id) (M : Term) → x ∉ᵥ M [ ` y / x ]β
+∉-subst : ∀ {x y : Id} (M : Term) → ¬ x ≡ y → x ∉ᵥ M [ ` y / x ]β
+∉-subst' : ∀ {x y : Id} (C : Command) → ¬ x ≡ y → x ∉ᵥ' C [ ` y / x ]β'
+-- ∉-subst {x} {y} (` z) ¬x=y with x ≟ y | x ≟ z
+-- ...                           | yes x=y | _ = ⊥-elim (¬x=y x=y)
+-- ...                           | no ¬x=y | yes _ = {!   !}
+-- ...                           | no ¬x=y | no  _ = {!   !}
+∉-subst {x} {y} (` z) ¬x=y with x ≟ z
+...                           | yes p with x ≟ y
+...                                      | yes q = ¬x=y q
+...                                      | no ¬q = tt
+∉-subst {x} {y} (` z) ¬x=y    | no _ = {!  !}
+∉-subst {x} {y} (ƛ z ⇒ M) ¬x=y with x ≟ z
+...                               | yes p = {!   !}
+...                               | no ¬p = {!   !}
+∉-subst (μ α ⇒ C) ¬x=y = ∉-subst' C ¬x=y
+∉-subst (M · N) ¬x=y = ⟨ ∉-subst M ¬x=y , ∉-subst N ¬x=y ⟩
+∉-subst' ([ α ] M) ¬x=y = ∉-subst M ¬x=y
 
 ---------------- α-EQUIVALENCE ----------------
 infixr 4 _=α_
@@ -231,16 +239,16 @@ data _=α_ where
     → ` x =α ` x
 
   [α-λ] : ∀ {x y : Id} {M M' : Term}
-    → y ∉ᵥ M'
-    → M =α M'
+    → M =α M' [ ` y / x ]β
+    → M' =α M [ ` x / y ]β
     ----------------
-    → ƛ x ⇒ M =α ƛ y ⇒ M' [ ` y / x ]β
+    → ƛ x ⇒ M =α ƛ y ⇒ M'
 
   [α-μ] : ∀ {α β : Name} {C C' : Command}
-    → β ∉ₙ' C'
-    → C =α' C'
+    → C =α' C' [ β / α ]ρ'
+    → C' =α' C [ α / β ]ρ'
     ----------------
-    → μ α ⇒ C =α μ β ⇒ C' [ β / α ]ρ'
+    → μ α ⇒ C =α μ β ⇒ C'
 
   [α-abs] : ∀ {x : Id} {M M' : Term}
     → M =α M'
@@ -271,17 +279,15 @@ postulate =α-same-subst : ∀ (x y : Id) {M N : Term} → M =α N → M [ ` y /
 postulate =α-same-vars : ∀ {x : Id} {M N : Term} → M =α N → x ∉ᵥ M → x ∉ᵥ N
 
 
-postulate =α-symm  : ∀ {M N : Term}    → M =α N  → N =α M
-postulate =α-symm' : ∀ {C D : Command} → C =α' D → D =α' C
--- =α-symm [α-var] = [α-var]
--- =α-symm ([α-λ] {x} {y} {M} {M'} y∉m' m=m') 
---   rewrite (sym (subst-inv y x M (=α-same-vars (=α-symm m=m') y∉m'))) 
---   = [α-λ] (∉-subst x y M) {! !}
--- =α-symm ([α-μ] c=c' new) = {!   !}
--- =α-symm ([α-abs] m=m') = [α-abs] (=α-symm m=m')
--- =α-symm ([α-app] m=m' n=n') = [α-app] (=α-symm m=m') (=α-symm n=n')
--- =α-symm ([α-mu] c=c') = [α-mu] (=α-symm' c=c')
--- =α-symm' ([α-name] m=m') = [α-name] (=α-symm m=m')
+=α-symm  : ∀ {M N : Term}    → M =α N  → N =α M
+=α-symm' : ∀ {C D : Command} → C =α' D → D =α' C
+=α-symm [α-var] = [α-var]
+=α-symm ([α-λ] m~m'yx m'~mxy) = [α-λ] m'~mxy m~m'yx
+=α-symm ([α-μ] c~c'βα c'~cαβ) = [α-μ] c'~cαβ c~c'βα
+=α-symm ([α-abs] m=m') = [α-abs] (=α-symm m=m')
+=α-symm ([α-app] m=m' n=n') = [α-app] (=α-symm m=m') (=α-symm n=n')
+=α-symm ([α-mu] c=c') = [α-mu] (=α-symm' c=c')
+=α-symm' ([α-name] m=m') = [α-name] (=α-symm m=m')
 
 
 ---------------- LMUV SINGLE STEP REDUCTION ----------------
@@ -498,7 +504,7 @@ par-sins  ([8] new mμ nn')    = trans (app* (par-sins mμ) (par-sins nn')) ([μ
 par-sins  ([9] new val mv mμ) = trans (app* (par-sins mv) (par-sins mμ)) ([μl] new val)
 par-sins' ([5] mm')           = name* (par-sins mm')
 par-sins' ([6] mμ)            = trans (name* (par-sins mμ)) [ρ]
- 
+  
 pars-sins : ∀ {M N : Term} → M ==>* N → M ⟶* N
 pars-sins reflx         = reflx
-pars-sins (trans mp pn) = trans-rtc (pars-sins mp) (par-sins pn)  
+pars-sins (trans mp pn) = trans-rtc (pars-sins mp) (par-sins pn)    
