@@ -6,6 +6,7 @@ open import Relation.Nullary using (Dec; yes; no; ¬_)
 open import Data.Unit using (⊤; tt)
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.Bool.Base using (Bool; true; false; T; _∧_; _∨_; not)
+open import Relation.Binary.PropositionalEquality using (_≡_; sym)
 
 ---------------- PROPERTIES ABOUT RELATIONS ----------------
 diamond : ∀ {A : Set} → (_⇒_ : A → A → Set) → (_=α_ : A → A → Set) → Set
@@ -128,17 +129,30 @@ _∈ₙ'_ : Name → Command → Bool
 ... | yes _ = true      
 ... | no _ = α ∈ₙ M
 
+infix 4 _∉ᵥ_
+infix 4 _∉ᵥ'_
+infix 4 _∉ₙ_
+infix 4 _∉ₙ'_
 _∉ᵥ_  : Id → Term    → Set
 _∉ᵥ'_ : Id → Command → Set
 _∉ₙ_  : Name → Term    → Set
 _∉ₙ'_ : Name → Command → Set
-_ ∉ᵥ _ = T (not (_ ∈ᵥ _))
-_ ∉ᵥ' _ = T (not (_ ∈ᵥ' _))
-_ ∉ₙ _ = T (not (_ ∈ₙ _))
-_ ∉ₙ' _ = T (not (_ ∈ₙ' _))
+x ∉ᵥ M  = T (not (x ∈ᵥ M))
+x ∉ᵥ' C = T (not (x ∈ᵥ' C))
+α ∉ₙ M  = T (not (α ∈ₙ M))
+α ∉ₙ' C = T (not (α ∈ₙ' C))
 
 
 ---------------- LAMBDA MU TERM SUBSTITUTION ----------------
+infixl 10 _[_/_]β
+infixl 10 _[_/_]β'
+infixl 10 _[_/_]ρ
+infixl 10 _[_/_]ρ'
+infixl 10 _[_∙_/_]r
+infixl 10 _[_∙_/_]r'
+infixl 10 _[_∙_/_]l
+infixl 10 _[_∙_/_]l'
+
 -- Simple term substitution
 _[_/_]β  : Term    → Term → Id → Term
 _[_/_]β' : Command → Term → Id → Command
@@ -203,6 +217,7 @@ _[_∙_/_]l' : Command → Term → Name → Name → Command
 ...                          | yes _ = [ γ ] N · M [ N ∙ γ / α ]l
 ...                          | no  _ = [ β ] M [ N ∙ γ / α ]l
 
+postulate ∉-subst : ∀ (x y : Id) (M : Term) → x ∉ᵥ M [ ` y / x ]β
 
 ---------------- α-EQUIVALENCE ----------------
 infixr 4 _=α_
@@ -248,6 +263,25 @@ data _=α'_ where
     → M =α M'
     ----------------
     → [ β ] M =α' [ β ] M'
+
+postulate subst-inv : ∀ (x y : Id) (M : Term) → x ∉ᵥ M → M [ ` x / y ]β [ ` y / x ]β ≡ M
+
+postulate =α-same-subst : ∀ (x y : Id) {M N : Term} → M =α N → M [ ` y / x ]β =α N [ ` y / x ]β
+
+postulate =α-same-vars : ∀ {x : Id} {M N : Term} → M =α N → x ∉ᵥ M → x ∉ᵥ N
+
+
+postulate =α-symm  : ∀ {M N : Term}    → M =α N  → N =α M
+postulate =α-symm' : ∀ {C D : Command} → C =α' D → D =α' C
+-- =α-symm [α-var] = [α-var]
+-- =α-symm ([α-λ] {x} {y} {M} {M'} y∉m' m=m') 
+--   rewrite (sym (subst-inv y x M (=α-same-vars (=α-symm m=m') y∉m'))) 
+--   = [α-λ] (∉-subst x y M) {! !}
+-- =α-symm ([α-μ] c=c' new) = {!   !}
+-- =α-symm ([α-abs] m=m') = [α-abs] (=α-symm m=m')
+-- =α-symm ([α-app] m=m' n=n') = [α-app] (=α-symm m=m') (=α-symm n=n')
+-- =α-symm ([α-mu] c=c') = [α-mu] (=α-symm' c=c')
+-- =α-symm' ([α-name] m=m') = [α-name] (=α-symm m=m')
 
 
 ---------------- LMUV SINGLE STEP REDUCTION ----------------
@@ -464,7 +498,7 @@ par-sins  ([8] new mμ nn')    = trans (app* (par-sins mμ) (par-sins nn')) ([μ
 par-sins  ([9] new val mv mμ) = trans (app* (par-sins mv) (par-sins mμ)) ([μl] new val)
 par-sins' ([5] mm')           = name* (par-sins mm')
 par-sins' ([6] mμ)            = trans (name* (par-sins mμ)) [ρ]
-
+ 
 pars-sins : ∀ {M N : Term} → M ==>* N → M ⟶* N
 pars-sins reflx         = reflx
-pars-sins (trans mp pn) = trans-rtc (pars-sins mp) (par-sins pn)
+pars-sins (trans mp pn) = trans-rtc (pars-sins mp) (par-sins pn)  

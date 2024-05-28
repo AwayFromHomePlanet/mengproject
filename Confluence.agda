@@ -2,17 +2,22 @@ module Confluence where
 
 open import Definitions
 open import Data.Product using (∃-syntax; _×_) renaming (_,_ to ⟨_,_⟩)
+open import Relation.Binary.PropositionalEquality using (_≡_)
 
 -- The substitution lemmas
-postulate β-subst-lemma : ∀ {z : Id} {P P' Q Q' : Term}      → P ==> P' → Q ==> Q  → P [ Q / z ]β     ==> P' [ Q' / z ]β
-postulate ρ-subst-lemma : ∀ {α β : Name} {P P' : Term}       → P ==> P'            → P [ α / β ]ρ     ==> P' [ α / β ]ρ
-postulate μr-subst-lemma : ∀ {α γ : Name} {P P' Q Q' : Term} → P ==> P' → Q ==> Q' → P [ Q ∙ γ / α ]r ==> P' [ Q' ∙ γ / α ]r
-postulate μl-subst-lemma : ∀ {α γ : Name} {P P' Q Q' : Term} → P ==> P' → Q ==> Q' → P [ Q ∙ γ / α ]l ==> P' [ Q' ∙ γ / α ]l
+postulate ==>-β-subst : ∀ {z : Id} {P P' Q Q' : Term}      → P ==> P' → Q ==> Q' → P [ Q / z ]β     ==> P' [ Q' / z ]β
+postulate ==>-ρ-subst : ∀ {α β : Name} {P P' : Term}       → P ==> P'            → P [ α / β ]ρ     ==> P' [ α / β ]ρ
+postulate ==>-μr-subst : ∀ {α γ : Name} {P P' Q Q' : Term} → P ==> P' → Q ==> Q' → P [ Q ∙ γ / α ]r ==> P' [ Q' ∙ γ / α ]r
+postulate ==>-μl-subst : ∀ {α γ : Name} {P P' Q Q' : Term} → P ==> P' → Q ==> Q' → P [ Q ∙ γ / α ]l ==> P' [ Q' ∙ γ / α ]l
 
-postulate β-subst-lemma' : ∀ {z : Id} {C C' : Command} {Q Q' : Term}      → C ==>' C' → Q ==> Q  → C [ Q / z ]β'     ==>' C' [ Q' / z ]β'
-postulate ρ-subst-lemma' : ∀ {α β : Name} {C C' : Command}                → C ==>' C'            → C [ α / β ]ρ'     ==>' C' [ α / β ]ρ'
-postulate μr-subst-lemma' : ∀ {α γ : Name} {C C' : Command} {Q Q' : Term} → C ==>' C' → Q ==> Q' → C [ Q ∙ γ / α ]r' ==>' C' [ Q' ∙ γ / α ]r'
-postulate μl-subst-lemma' : ∀ {α γ : Name} {C C' : Command} {Q Q' : Term} → C ==>' C' → Q ==> Q' → C [ Q ∙ γ / α ]l' ==>' C' [ Q' ∙ γ / α ]l'
+postulate ==>-β-subst' : ∀ {z : Id} {C C' : Command} {Q Q' : Term}      → C ==>' C' → Q ==> Q' → C [ Q / z ]β'     ==>' C' [ Q' / z ]β'
+postulate ==>-ρ-subst' : ∀ {α β : Name} {C C' : Command}                → C ==>' C'            → C [ α / β ]ρ'     ==>' C' [ α / β ]ρ'
+postulate ==>-μr-subst' : ∀ {α γ : Name} {C C' : Command} {Q Q' : Term} → C ==>' C' → Q ==> Q' → C [ Q ∙ γ / α ]r' ==>' C' [ Q' ∙ γ / α ]r'
+postulate ==>-μl-subst' : ∀ {α γ : Name} {C C' : Command} {Q Q' : Term} → C ==>' C' → Q ==> Q' → C [ Q ∙ γ / α ]l' ==>' C' [ Q' ∙ γ / α ]l'
+
+postulate =α-β-subst : ∀ {x : Id} {M M' N N' : Term} → M =α M' → N =α N' → M [ N / x ]β =α M' [ N' / x ]β
+
+postulate ≡-ββ-subst : ∀ {x y : Id} {M N : Term} → y ∉ᵥ M → M [ ` y / x ]β [ N / y ]β ≡ M [ N / x ]β
 
 -- Values only reduce to values
 val-red-val : ∀ {V V' : Term} → V ==> V' → Value V → Value V'
@@ -29,37 +34,86 @@ val-α-val ([α-abs] _) Vƛ = Vƛ
 ==>-diamond  : diamond _==>_  _=α_
 ==>-diamond' : diamond _==>'_ _=α'_
 
-==>-diamond ([1] {x}) [1] = ⟨ ` x , ⟨ ` x , ⟨ [α-var] , ⟨ [1] , [1] ⟩ ⟩ ⟩ ⟩
+==>-diamond ([1] {x}) [1] 
+  = ⟨ ` x , ⟨ ` x , ⟨ [α-var] , ⟨ [1] , [1] ⟩ ⟩ ⟩ ⟩
 
 
 ==>-diamond ([2] {x} m0m1) ([2] m0m2) with ==>-diamond m0m1 m0m2
-... | ⟨ m3 , ⟨ m4 , ⟨ m3=m4 , ⟨ m1m3 , m2m4 ⟩ ⟩ ⟩ ⟩ = ⟨ (ƛ x ⇒ m3) , ⟨ (ƛ x ⇒ m4) , ⟨ ([α-abs] m3=m4) , ⟨ ([2] m1m3) , ([2] m2m4) ⟩ ⟩ ⟩ ⟩
+... | ⟨ m3 , ⟨ m4 , ⟨ m3=m4 , ⟨ m1m3 , m2m4 ⟩ ⟩ ⟩ ⟩ 
+  = ⟨ (ƛ x ⇒ m3) , ⟨ (ƛ x ⇒ m4) , ⟨ ([α-abs] m3=m4) , ⟨ ([2] m1m3) , ([2] m2m4) ⟩ ⟩ ⟩ ⟩
 
 
 ==>-diamond ([3] {α} c0c1) ([3] c0c2) with ==>-diamond' c0c1 c0c2
-... | ⟨ c3 , ⟨ c4 , ⟨ c3=c4 , ⟨ c1c3 , c2c4 ⟩ ⟩ ⟩ ⟩ = ⟨ μ α ⇒ c3 , ⟨ μ α ⇒ c4 , ⟨ [α-mu] c3=c4 , ⟨ [3] c1c3 , [3] c2c4 ⟩ ⟩ ⟩ ⟩
+... | ⟨ c3 , ⟨ c4 , ⟨ c3=c4 , ⟨ c1c3 , c2c4 ⟩ ⟩ ⟩ ⟩ 
+  = ⟨ μ α ⇒ c3 , ⟨ μ α ⇒ c4 , ⟨ [α-mu] c3=c4 , ⟨ [3] c1c3 , [3] c2c4 ⟩ ⟩ ⟩ ⟩
 
 
 ==>-diamond ([4] m0m1 n0n1) ([4] m0m2 n0n2) with ==>-diamond m0m1 m0m2
 ... | ⟨ m3 , ⟨ m4 , ⟨ m3=m4 , ⟨ m1m3 , m2m4 ⟩ ⟩ ⟩ ⟩ with ==>-diamond n0n1 n0n2
-... | ⟨ n3 , ⟨ n4 , ⟨ n3=n4 , ⟨ n1n3 , n2n4 ⟩ ⟩ ⟩ ⟩ = ⟨ (m3 · n3) , ⟨ (m4 · n4) , ⟨ ([α-app] m3=m4 n3=n4) , ⟨ ([4] m1m3 n1n3) , ([4] m2m4 n2n4) ⟩ ⟩ ⟩ ⟩
+... | ⟨ n3 , ⟨ n4 , ⟨ n3=n4 , ⟨ n1n3 , n2n4 ⟩ ⟩ ⟩ ⟩ 
+  = ⟨ (m3 · n3) , ⟨ (m4 · n4) , ⟨ ([α-app] m3=m4 n3=n4) , ⟨ ([4] m1m3 n1n3) , ([4] m2m4 n2n4) ⟩ ⟩ ⟩ ⟩
 
-==>-diamond ([4] m0m1 n0n1) ([7] {x} val m0λm2 n0v2) = {!   !}
+==>-diamond ([4] m0m1 n0n1) ([7] {x} val m0λm2 n0v2) with ==>-diamond n0n1 n0v2
+... | ⟨ n3 , ⟨ v4 , ⟨ n3=v4 , ⟨ n1n3 , n2v4 ⟩ ⟩ ⟩ ⟩ with val-α-val (=α-symm n3=v4) (val-red-val n2v4 val)
+... | val-n3 with ==>-diamond m0m1 m0λm2 
+... | ⟨ ƛ x ⇒ m3 , ⟨ ƛ x ⇒ m4 , ⟨ [α-abs] m3=m4 , ⟨ m1m3 , [2] m2m4 ⟩ ⟩ ⟩ ⟩ 
+  = ⟨ m3 [ n3 / x ]β , ⟨ m4 [ v4 / x ]β , ⟨ =α-β-subst m3=m4 n3=v4 , ⟨ [7] val-n3 m1m3 n1n3 , ==>-β-subst m2m4 n2v4 ⟩ ⟩ ⟩ ⟩
+... | ⟨ ƛ y ⇒ m3 , ⟨ ƛ x ⇒ m4 , ⟨ [α-λ] x∉m4 m3=m4 , ⟨ m1m3 , m2m4 ⟩ ⟩ ⟩ ⟩ 
+  = ⟨ m3 [ n3 / y ]β , ⟨ {!  !} , ⟨ {!   !} , ⟨ [7] val-n3 m1m3 n1n3 , {!   !} ⟩ ⟩ ⟩ ⟩
 
-==>-diamond ([4] m0m1 n0n1) ([8] tv tv₁) = {!   !}
-
-==>-diamond ([4] m0m1 n0n1) ([9] x tv tv₁) = {!   !}
-
-
-==>-diamond ([7] x tu tu₁) tv = {!   !}
-
-
-==>-diamond ([8] tu tu₁) tv = {!   !}
+-- ==>-diamond ([4] m0m1 n0n1) ([7] {x} val m0λm2 n0v2) with ==>-diamond n0n1 n0v2
+-- ... | ⟨ n3 , ⟨ v4 , ⟨ n3=v4 , ⟨ n1n3 , n2v4 ⟩ ⟩ ⟩ ⟩ with val-α-val (=α-symm n3=v4) (val-red-val n2v4 val)
+-- ... | val-n3 with ==>-diamond m0m1 m0λm2 
+-- ... | ⟨ .(ƛ _ ⇒ _) , ⟨ ƛ x ⇒ .(_ [ ` x / _ ]β) , ⟨ [α-λ] x₁ m3=m4 , ⟨ m1m3 , [2] m2m4 ⟩ ⟩ ⟩ ⟩ 
+--   = ⟨ {!   !} , {!   !} ⟩
+-- ... | ⟨ .(ƛ x ⇒ _) , ⟨ ƛ x ⇒ m4 , ⟨ [α-abs] m3=m4 , ⟨ m1m3 , [2] m2m4 ⟩ ⟩ ⟩ ⟩ 
+--   = {!   !}
 
 
-==>-diamond ([9] x tu tu₁) tv = {!   !}
+==>-diamond ([4] m0m1 n0n1) ([8] {α} {γ} new m0μc2 n0n2) = {!   !}
+
+==>-diamond ([4] m0m1 n0n1) ([9] {α} {γ} new val m0v2 n0μc2) = {!   !}
+
+
+==>-diamond p0p1@([7] _ _ _) p0p2@([4] _ _) = {!   !}
+-- with ==>-diamond p0p2 p0p1
+-- ... | ⟨ p4 , ⟨ p3 , ⟨ p4=p3 , ⟨ p2p4 , p1p3 ⟩ ⟩ ⟩ ⟩
+--   = ⟨ p3 , ⟨ p4 , ⟨ =α-symm p4=p3 , ⟨ p1p3 , p2p4 ⟩ ⟩ ⟩ ⟩
+
+==>-diamond ([7] {x} val1 m0λm1 n0v1) ([7] {y} val2 m0λm2 n0v2) with ==>-diamond n0v1 n0v2
+... | ⟨ v3 , ⟨ v4 , ⟨ v3=v4 , ⟨ v1v3 , v2v4 ⟩ ⟩ ⟩ ⟩ with ==>-diamond m0λm1 m0λm2
+... | ⟨ ƛ x ⇒ m3 , ⟨ ƛ y ⇒ .(_ [ ` y / x ]β) , ⟨ [α-λ] y∉m4 m3=m4 , ⟨ [2] m1m3 , [2] m2m4 ⟩ ⟩ ⟩ ⟩ 
+  = ⟨ (m3 [ v3 / x ]β) , ⟨ {!   !} , {!   !} ⟩ ⟩
+... | ⟨ ƛ x ⇒ m3 , ⟨ ƛ x ⇒ m4 , ⟨ [α-abs] m3=m4 , ⟨ [2] m1m3 , [2] m2m4 ⟩ ⟩ ⟩ ⟩ 
+  = ⟨ (m3 [ v3 / x ]β) , ⟨ (m4 [ v4 / x ]β) , ⟨ (=α-β-subst m3=m4 v3=v4) , ⟨ (==>-β-subst m1m3 v1v3) , (==>-β-subst m2m4 v2v4) ⟩ ⟩ ⟩ ⟩
+
+==>-diamond ([7] {x} val m0λm1 n0v1) ([8] x₁ tv tv₁) = {!   !}
+
+==>-diamond ([7] {x} val m0λm1 n0v1) ([9] x₁ x₂ tv tv₁) = {!   !}
+
+
+==>-diamond ([8] {α} {γ} new m0μc1 n0n1) tv = {!   !}
+
+
+==>-diamond ([9] {α} {γ} new val m0v1 n0μc1) tv = {!   !}
 
 ==>-diamond' tu tv = {!   !}
+-- open import Data.Nat using (ℕ; zero; suc)
+-- open import Data.Empty using (⊥; ⊥-elim)
+-- postulate
+--   R     : Set
+--   P     : ℕ → Set
+--   f     : ℕ → ℕ
+--   lemma : ∀ n → P (f n) → R
+
+-- Q : ℕ → Set
+-- Q zero    = ⊥
+-- Q (suc n) = P (suc n)
+
+-- proof : (n : ℕ) → Q (f n) → R
+-- proof n q with f n    | lemma n
+-- proof n ()   | zero   | _
+-- proof n q    | suc fn | lem = {!   !}
 
 {-==>-diamond ([1] {x}) [1] = ⟨ (` x) , ⟨ [1] , [1] ⟩ ⟩
 
@@ -150,4 +204,4 @@ val-α-val ([α-abs] _) Vƛ = Vƛ
  
 ==>-diamond' ([6] {α} {β} m0μc1) ([6] m0μc2) with ==>-diamond m0μc1 m0μc2
 ... | ⟨ μ β ⇒ c3 , ⟨ [3] c1c3 , [3] c2c3 ⟩ ⟩ = ⟨ c3 [ α / β ]ρ' , ⟨ ρ-subst-lemma' c1c3 , ρ-subst-lemma' c2c3 ⟩ ⟩
--}
+-} 
