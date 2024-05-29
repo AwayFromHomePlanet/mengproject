@@ -27,8 +27,7 @@ val-red-val ([2] vv') Vƛ = Vƛ
 -- Values are only α-equivalent to values
 val-α-val : ∀ {V V' : Term} → V =α V' → Value V → Value V'
 val-α-val [α-var] Vx = Vx
-val-α-val ([α-λ] _ _) Vƛ = Vƛ
-val-α-val ([α-abs] _) Vƛ = Vƛ
+val-α-val ([α-λ] _ _ _) Vƛ = Vƛ
 
 -- The main theorem: If P0 ==> P1 and P0 ==> P2, there exists some P3 such that P1 ==> P3 and P2 ==> P3
 ==>-diamond  : diamond _==>_  _=α_
@@ -40,12 +39,12 @@ val-α-val ([α-abs] _) Vƛ = Vƛ
 
 ==>-diamond ([2] {x} m0m1) ([2] m0m2) with ==>-diamond m0m1 m0m2
 ... | ⟨ m3 , ⟨ m4 , ⟨ m3=m4 , ⟨ m1m3 , m2m4 ⟩ ⟩ ⟩ ⟩ 
-  = ⟨ (ƛ x ⇒ m3) , ⟨ (ƛ x ⇒ m4) , ⟨ ([α-abs] m3=m4) , ⟨ ([2] m1m3) , ([2] m2m4) ⟩ ⟩ ⟩ ⟩
+  = ⟨ ƛ x ⇒ m3 , ⟨ ƛ x ⇒ m4 , ⟨ =α-abs m3=m4 , ⟨ ([2] m1m3) , ([2] m2m4) ⟩ ⟩ ⟩ ⟩
 
 
 ==>-diamond ([3] {α} c0c1) ([3] c0c2) with ==>-diamond' c0c1 c0c2
 ... | ⟨ c3 , ⟨ c4 , ⟨ c3=c4 , ⟨ c1c3 , c2c4 ⟩ ⟩ ⟩ ⟩ 
-  = ⟨ μ α ⇒ c3 , ⟨ μ α ⇒ c4 , ⟨ [α-mu] c3=c4 , ⟨ [3] c1c3 , [3] c2c4 ⟩ ⟩ ⟩ ⟩
+  = ⟨ μ α ⇒ c3 , ⟨ μ α ⇒ c4 , ⟨ =α-mu c3=c4 , ⟨ [3] c1c3 , [3] c2c4 ⟩ ⟩ ⟩ ⟩
 
 
 ==>-diamond ([4] m0m1 n0n1) ([4] m0m2 n0n2) with ==>-diamond m0m1 m0m2
@@ -53,13 +52,10 @@ val-α-val ([α-abs] _) Vƛ = Vƛ
 ... | ⟨ n3 , ⟨ n4 , ⟨ n3=n4 , ⟨ n1n3 , n2n4 ⟩ ⟩ ⟩ ⟩ 
   = ⟨ (m3 · n3) , ⟨ (m4 · n4) , ⟨ ([α-app] m3=m4 n3=n4) , ⟨ ([4] m1m3 n1n3) , ([4] m2m4 n2n4) ⟩ ⟩ ⟩ ⟩
 
-==>-diamond ([4] m0m1 n0n1) ([7] {x} val m0λm2 n0v2) with ==>-diamond n0n1 n0v2
-... | ⟨ n3 , ⟨ v4 , ⟨ n3=v4 , ⟨ n1n3 , n2v4 ⟩ ⟩ ⟩ ⟩ with val-α-val (=α-symm n3=v4) (val-red-val n2v4 val)
-... | val-n3 with ==>-diamond m0m1 m0λm2 
-... | ⟨ ƛ x ⇒ m3 , ⟨ ƛ x ⇒ m4 , ⟨ [α-abs] m3=m4 , ⟨ m1m3 , [2] m2m4 ⟩ ⟩ ⟩ ⟩ 
-  = ⟨ m3 [ n3 / x ]β , ⟨ m4 [ v4 / x ]β , ⟨ =α-β-subst m3=m4 n3=v4 , ⟨ [7] val-n3 m1m3 n1n3 , ==>-β-subst m2m4 n2v4 ⟩ ⟩ ⟩ ⟩
-... | ⟨ ƛ y ⇒ m3 , ⟨ ƛ x ⇒ m4 , ⟨ [α-λ] x∉m4 m3=m4 , ⟨ m1m3 , m2m4 ⟩ ⟩ ⟩ ⟩ 
-  = ⟨ m3 [ n3 / y ]β , ⟨ {!  !} , ⟨ {!   !} , ⟨ [7] val-n3 m1m3 n1n3 , {!   !} ⟩ ⟩ ⟩ ⟩
+==>-diamond ([4] m0m1 n0n1) ([7] {x} val m0λm2 n0v2) with ==>-diamond m0m1 m0λm2 
+... | ⟨ ƛ y ⇒ m3 , ⟨ ƛ x ⇒ m4 , ⟨ [α-λ] z∉m3 z∉m4 m3~m4 , ⟨ m1m3 , [2] m2m4 ⟩ ⟩ ⟩ ⟩ with ==>-diamond n0n1 n0v2
+... | ⟨ n3 , ⟨ v4 , ⟨ n3=v4 , ⟨ n1n3 , n2v4 ⟩ ⟩ ⟩ ⟩ = ⟨ (m3 [ n3 / y ]β) , ⟨ (m4 [ v4 / x ]β) , ⟨ {!   !} , ⟨ [7] val-n3 m1m3 n1n3 , ==>-β-subst m2m4 n2v4 ⟩ ⟩ ⟩ ⟩
+  where val-n3 = val-α-val (=α-symm n3=v4) (val-red-val n2v4 val)
 
 -- ==>-diamond ([4] m0m1 n0n1) ([7] {x} val m0λm2 n0v2) with ==>-diamond n0n1 n0v2
 -- ... | ⟨ n3 , ⟨ v4 , ⟨ n3=v4 , ⟨ n1n3 , n2v4 ⟩ ⟩ ⟩ ⟩ with val-α-val (=α-symm n3=v4) (val-red-val n2v4 val)
@@ -70,7 +66,9 @@ val-α-val ([α-abs] _) Vƛ = Vƛ
 --   = {!   !}
 
 
-==>-diamond ([4] m0m1 n0n1) ([8] {α} {γ} new m0μc2 n0n2) = {!   !}
+==>-diamond ([4] m0m1 n0n1) ([8] {α} {γ} new m0μc2 n0n2) with ==>-diamond m0m1 m0μc2
+... | ⟨ μ β ⇒ c3 , ⟨ μ α ⇒ c4 , ⟨ [α-μ] δ∉c3 δ∉c4 c3~c4 , ⟨ m1m3 , [3] c2c4 ⟩ ⟩ ⟩ ⟩ with ==>-diamond n0n1 n0n2
+... | ⟨ n3 , ⟨ n4 , ⟨ n3=n4 , ⟨ n1n3 , n2n4 ⟩ ⟩ ⟩ ⟩ = ⟨ {!   !} , ⟨ {!   !} , ⟨ {!   !} , ⟨ {!   !} , {!   !} ⟩ ⟩ ⟩ ⟩
 
 ==>-diamond ([4] m0m1 n0n1) ([9] {α} {γ} new val m0v2 n0μc2) = {!   !}
 
@@ -80,12 +78,8 @@ val-α-val ([α-abs] _) Vƛ = Vƛ
 -- ... | ⟨ p4 , ⟨ p3 , ⟨ p4=p3 , ⟨ p2p4 , p1p3 ⟩ ⟩ ⟩ ⟩
 --   = ⟨ p3 , ⟨ p4 , ⟨ =α-symm p4=p3 , ⟨ p1p3 , p2p4 ⟩ ⟩ ⟩ ⟩
 
-==>-diamond ([7] {x} val1 m0λm1 n0v1) ([7] {y} val2 m0λm2 n0v2) with ==>-diamond n0v1 n0v2
-... | ⟨ v3 , ⟨ v4 , ⟨ v3=v4 , ⟨ v1v3 , v2v4 ⟩ ⟩ ⟩ ⟩ with ==>-diamond m0λm1 m0λm2
-... | ⟨ ƛ x ⇒ m3 , ⟨ ƛ y ⇒ .(_ [ ` y / x ]β) , ⟨ [α-λ] y∉m4 m3=m4 , ⟨ [2] m1m3 , [2] m2m4 ⟩ ⟩ ⟩ ⟩ 
-  = ⟨ (m3 [ v3 / x ]β) , ⟨ {!   !} , {!   !} ⟩ ⟩
-... | ⟨ ƛ x ⇒ m3 , ⟨ ƛ x ⇒ m4 , ⟨ [α-abs] m3=m4 , ⟨ [2] m1m3 , [2] m2m4 ⟩ ⟩ ⟩ ⟩ 
-  = ⟨ (m3 [ v3 / x ]β) , ⟨ (m4 [ v4 / x ]β) , ⟨ (=α-β-subst m3=m4 v3=v4) , ⟨ (==>-β-subst m1m3 v1v3) , (==>-β-subst m2m4 v2v4) ⟩ ⟩ ⟩ ⟩
+==>-diamond ([7] {x} val1 m0λm1 n0v1) ([7] {y} val2 m0λm2 n0v2) with ==>-diamond m0λm1 m0λm2
+... | ⟨ m3 , ⟨ m4 , ⟨ m3=m4 , ⟨ m1m3 , m2m4 ⟩ ⟩ ⟩ ⟩ = {!   !}
 
 ==>-diamond ([7] {x} val m0λm1 n0v1) ([8] x₁ tv tv₁) = {!   !}
 
