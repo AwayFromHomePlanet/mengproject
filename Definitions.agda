@@ -95,85 +95,45 @@ data Value : Term → Set where
   Vx : ∀ {x : Id}            → Value (` x)
   Vƛ : ∀ {x : Id} {M : Term} → Value (ƛ x ⇒ M)
 
--- Means a variable/name does not occur free in the term/command
-infix 4 _#ᵥ_
-infix 4 _#ᵥ'_
-infix 4 _#ₙ_
-infix 4 _#ₙ'_
+-- Means a name does not occur free in the term/command
+infix 4 _#_
+infix 4 _#'_
+_#_  : Name → Term    → Set
+_#'_ : Name → Command → Set
 
-_#ᵥ_  : Id → Term    → Set
-_#ᵥ'_ : Id → Command → Set
+α #  (` x) = ⊤
 
-x #ᵥ  (` y) with x ≟ y
-...           | yes _     = ⊥
-...           | no  _     = ⊤
+α #  (ƛ x ⇒ M) = α # M
 
-x #ᵥ  (ƛ y ⇒ M) with x ≟ y
-...               | yes _ = ⊤
-...               | no  _ = x #ᵥ M
+α #  (M · N)              = α # M × α # N
 
-x #ᵥ  (M · N)              = x #ᵥ M × x #ᵥ N
-
-x #ᵥ  (μ α ⇒ C)            = x #ᵥ' C
-
-x #ᵥ' ([ α ] M)            = x #ᵥ M
-
-_#ₙ_  : Name → Term    → Set
-_#ₙ'_ : Name → Command → Set
-
-α #ₙ  (` x) = ⊤
-
-α #ₙ  (ƛ x ⇒ M) = α #ₙ M
-
-α #ₙ  (M · N)              = α #ₙ M × α #ₙ N
-
-α #ₙ  (μ β ⇒ C) with α ≟ β
+α #  (μ β ⇒ C) with α ≟ β
 ... | yes _ = ⊤
-... | no _ = α #ₙ' C
+... | no _ = α #' C
 
-α #ₙ' ([ β ] M)  with α ≟ β
+α #' ([ β ] M)  with α ≟ β
 ... | yes _ = ⊥
-... | no _ = α #ₙ M
+... | no _ = α # M
 
--- Means a variable/name does not occur at all in the term/command
-infix 4 _∉ᵥ_
-infix 4 _∉ᵥ'_
-infix 4 _∉ₙ_
-infix 4 _∉ₙ'_
+-- Means a name does not occur at all in the term/command
+infix 4 _∉_
+infix 4 _∉'_
+_∉_  : Name → Term    → Set
+_∉'_ : Name → Command → Set
 
-_∉ᵥ_  : Id → Term    → Set
-_∉ᵥ'_ : Id → Command → Set
+α ∉  (` x) = ⊤
 
-x ∉ᵥ  (` y) with x ≟ y
-...           | yes _     = ⊥
-...           | no  _     = ⊤
+α ∉  (ƛ x ⇒ M) = α ∉ M
 
-x ∉ᵥ  (ƛ y ⇒ M) with x ≟ y
-...               | yes _ = ⊥
-...               | no  _ = x ∉ᵥ M
+α ∉  (M · N)              = α ∉ M × α ∉ N
 
-x ∉ᵥ  (M · N)              = x ∉ᵥ M × x ∉ᵥ N
-
-x ∉ᵥ  (μ α ⇒ C)            = x ∉ᵥ' C
-
-x ∉ᵥ' ([ α ] M)            = x ∉ᵥ M
-
-_∉ₙ_  : Name → Term    → Set
-_∉ₙ'_ : Name → Command → Set
-
-α ∉ₙ  (` x) = ⊤
-
-α ∉ₙ  (ƛ x ⇒ M) = α ∉ₙ M
-
-α ∉ₙ  (M · N)              = α ∉ₙ M × α ∉ₙ N
-
-α ∉ₙ  (μ β ⇒ C) with α ≟ β
+α ∉  (μ β ⇒ C) with α ≟ β
 ... | yes _ = ⊥
-... | no _ = α ∉ₙ' C
+... | no _ = α ∉' C
 
-α ∉ₙ' ([ β ] M)  with α ≟ β
+α ∉' ([ β ] M)  with α ≟ β
 ... | yes _ = ⊥
-... | no _ = α ∉ₙ M
+... | no _ = α ∉ M
 
 -- fresh : (M : Term) → (x : Id) × (x ∉ᵥ M)
 
@@ -271,6 +231,7 @@ _[_∙_/_]l' : Command → Term → Name → Name → Command
 -- ∉-subst' ([ α ] M) ¬x=y = ∉-subst M ¬x=y
 
 ---------------- α-EQUIVALENCE ----------------
+-- For simplicity, we only consider the renaming of μ names; λ variables can be handled similarly.
 infixr 4 _=α_
 infixr 4 _=α'_
 data _=α_  : Term    → Term    → Set
@@ -281,19 +242,10 @@ data _=α_ where
     ----------------
     → ` x =α ` x
 
-  [α-λ] : ∀ {x y z : Id} {M M' : Term}
-    → z ∉ᵥ M
-    → z ∉ᵥ M'
-    → M [ ` z / x ]β =α M' [ ` z / y ]β
+  [α-λ] : ∀ {x : Id} {M M' : Term}
+    → M =α M'
     ----------------
-    → ƛ x ⇒ M =α ƛ y ⇒ M'
-
-  [α-μ] : ∀ {α β γ : Name} {C C' : Command}
-    → γ ∉ₙ' C
-    → γ ∉ₙ' C'
-    → C [ γ / α ]ρ' =α' C' [ γ / β ]ρ'
-    ----------------
-    → μ α ⇒ C =α μ β ⇒ C'
+    → ƛ x ⇒ M =α ƛ x ⇒ M'
 
   [α-app] : ∀ {M M' N N' : Term}
     → M =α M'
@@ -301,30 +253,36 @@ data _=α_ where
     ----------------
     → M · N =α M' · N'
 
+  [α-μ] : ∀ {α β γ : Name} {C C' : Command}
+    → γ ∉' C
+    → γ ∉' C'
+    → C [ γ / α ]ρ' =α' C' [ γ / β ]ρ'
+    ----------------
+    → μ α ⇒ C =α μ β ⇒ C'
+
 data _=α'_ where
   [α-name] : ∀ {β : Name} {M M' : Term}
     → M =α M'
     ----------------
     → [ β ] M =α' [ β ] M'
 
-postulate subst-inv : ∀ (x y : Id) (M : Term) → x ∉ᵥ M → M [ ` x / y ]β [ ` y / x ]β ≡ M
+-- postulate subst-inv : ∀ (x y : Id) (M : Term) → x ∉ᵥ M → M [ ` x / y ]β [ ` y / x ]β ≡ M
 
-postulate =α-same-subst : ∀ (x y : Id) {M N : Term} → M =α N → M [ ` y / x ]β =α N [ ` y / x ]β
+-- postulate =α-same-subst : ∀ (x y : Id) {M N : Term} → M =α N → M [ ` y / x ]β =α N [ ` y / x ]β
 
-postulate =α-same-vars : ∀ {x : Id} {M N : Term} → M =α N → x ∉ᵥ M → x ∉ᵥ N
+-- postulate =α-same-vars : ∀ {x : Id} {M N : Term} → M =α N → x ∉ᵥ M → x ∉ᵥ N
 
 
 =α-symm  : ∀ {M N : Term}    → M =α N  → N =α M
 =α-symm' : ∀ {C D : Command} → C =α' D → D =α' C
 =α-symm [α-var] = [α-var]
-=α-symm ([α-λ] z∉m z∉m' m~m') = [α-λ] z∉m' z∉m (=α-symm m~m')
-=α-symm ([α-μ] γ∉c γ∉c' c~c') = [α-μ] γ∉c' γ∉c (=α-symm' c~c')
+=α-symm ([α-λ] m~m') = [α-λ] (=α-symm m~m')
 =α-symm ([α-app] m=m' n=n') = [α-app] (=α-symm m=m') (=α-symm n=n')
+=α-symm ([α-μ] γ∉c γ∉c' c~c') = [α-μ] γ∉c' γ∉c (=α-symm' c~c')
 =α-symm' ([α-name] m=m') = [α-name] (=α-symm m=m')
 
-postulate =α-fresh : ∀ {x y z : Id} {M N : Term} → M [ ` z / x ]β =α N [ ` z / y ]β → M =α N
+-- postulate =α-fresh : ∀ {x y z : Id} {M N : Term} → M [ ` z / x ]β =α N [ ` z / y ]β → M =α N
 
-postulate =α-abs : ∀ {x : Id} {M N : Term} → M =α N → ƛ x ⇒ M =α ƛ x ⇒ N
 postulate =α-mu : ∀ {α : Name} {C D : Command} → C =α' D → μ α ⇒ C =α μ α ⇒ D
 -- =α-abs [α-var] = {!   !}
 -- =α-abs ([α-λ] x x₁ mn) = {!   !}
@@ -345,12 +303,12 @@ data _⟶_ where
     → (ƛ x ⇒ M) · V ⟶ M [ V / x ]β
 
   [μr] : ∀ {α γ : Name} {N : Term} {C : Command}
-    → γ ∉ₙ ((μ α ⇒ C) · N)
+    → γ ∉ ((μ α ⇒ C) · N)
     ----------------
     → (μ α ⇒ C) · N ⟶ μ γ ⇒ C [ N ∙ γ / α ]r'
 
   [μl] : ∀ {α γ : Name} {V : Term} {C : Command}
-    → γ ∉ₙ (V · (μ α ⇒ C))
+    → γ ∉ (V · (μ α ⇒ C))
     → Value V
     ----------------
     → V · (μ α ⇒ C) ⟶ μ γ ⇒ C [ V ∙ γ / α ]l'
@@ -472,14 +430,14 @@ data _==>_ where
     → M · N ==> M' [ V / x ]β
 
   [8] : ∀ {α γ : Name} {M N N' : Term} {C : Command}
-    → γ ∉ₙ ((μ α ⇒ C) · N')
+    → γ ∉ ((μ α ⇒ C) · N')
     → M ==> μ α ⇒ C
     → N ==> N'
     ----------------
     → M · N ==> μ γ ⇒ C [ N' ∙ γ / α ]r'
 
   [9] : ∀ {α γ : Name} {M V N : Term} {C : Command}
-    → γ ∉ₙ (V · (μ α ⇒ C))
+    → γ ∉ (V · (μ α ⇒ C))
     → Value V
     → M ==> V
     → N ==> μ α ⇒ C
