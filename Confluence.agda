@@ -19,6 +19,10 @@ postulate =α-β-subst : ∀ {x : Id} {M M' N N' : Term} → M =α M' → N =α 
 
 -- postulate ≡-ββ-subst : ∀ {x y : Id} {M N : Term} → y ∉ᵥ M → M [ ` y / x ]β [ N / y ]β ≡ M [ N / x ]β
 
+postulate ≣-ρρ-subst : ∀ {α β γ : Name} {C D : Command} → β ∉' C → C [ β / α ]ρ' [ γ / β ]ρ' ≡ C [ γ / α ]ρ'
+
+postulate =α-ρ-fresh : ∀ {α β γ δ : Name} (C D : Command) → γ ∉' C → γ ∉' D → C [ γ / α ]ρ' =α' D [ γ / β ]ρ' → C [ δ / α ]ρ' =α' D [ δ / β ]ρ'
+
 -- Values only reduce to values
 val-red-val : ∀ {V V' : Term} → V ==> V' → Value V → Value V'
 val-red-val [1] Vx = Vx
@@ -105,16 +109,26 @@ reverse' c0c1 c0c2 with ==>-diamond' c0c2 c0c1
 
 
 ==>-diamond p0p1@([9] _ _ _ _) p0p2@([4] _ _) = reverse p0p1 p0p2
+
 ==>-diamond p0p1@([9] _ _ _ _) p0p2@([7] _ _ _) = reverse p0p1 p0p2
+
 ==>-diamond p0p1@([9] _ _ _ _) p0p2@([8] _ _ _) = reverse p0p1 p0p2
+
 ==>-diamond ([9] {α} {γ} new val m0v1 n0μc1) ([9] x x₁ tv tv₁) = {!   !}
+
 
 ==>-diamond' ([5] {α} m0m1) ([5] m0m2) with ==>-diamond m0m1 m0m2
 ... | ⟨ m3 , ⟨ m4 , ⟨ m3~m4 , ⟨ m1m3 , m2m4 ⟩ ⟩ ⟩ ⟩ = ⟨ [ α ] m3 , ⟨ [ α ] m4 , ⟨ [α-name] m3~m4 , ⟨ [5] m1m3 , [5] m2m4 ⟩ ⟩ ⟩ ⟩
-==>-diamond' ([5] {α} m0m1) ([6] m0μc2) = {!   !}
+==>-diamond' ([5] {δ} m0m1) ([6] m0μc2) with ==>-diamond m0m1 m0μc2
+... | ⟨ μ α ⇒ c3 , ⟨ μ β ⇒ c4 , ⟨ [α-μ] γ∉c3 γ∉c4 c3~γc4 , ⟨ m1μc3 , [3] c2c4 ⟩ ⟩ ⟩ ⟩
+  = ⟨ c3 [ δ / α ]ρ' , ⟨ c4 [ δ / β ]ρ' , ⟨ =α-ρ-fresh c3 c4 γ∉c3 γ∉c4 c3~γc4 , ⟨ [6] m1μc3 , ==>-ρ-subst' c2c4 ⟩ ⟩ ⟩ ⟩
+
 
 ==>-diamond' p0p1@([6] _) p0p2@([5] _) = reverse' p0p1 p0p2
-==>-diamond' ([6] {α} {β} m0μc1) ([6] m0μc2) = {!   !}
+
+==>-diamond' ([6] {δ} {α} m0μc1) ([6] {δ'} {β} m0μc2) with ==>-diamond m0μc1 m0μc2
+... | ⟨ μ α ⇒ c3 , ⟨ μ β ⇒ c4 , ⟨ [α-μ] γ∉c3 γ∉c4 c3~γc4 , ⟨ [3] c1c3 , [3] c2c4 ⟩ ⟩ ⟩ ⟩ 
+  = ⟨ c3 [ δ / α ]ρ' , ⟨ c4 [ δ / β ]ρ' , ⟨ =α-ρ-fresh c3 c4 γ∉c3 γ∉c4 c3~γc4 , ⟨ ==>-ρ-subst' c1c3 , ==>-ρ-subst' c2c4 ⟩ ⟩ ⟩ ⟩
 
 {-==>-diamond ([1] {x}) [1] = ⟨ (` x) , ⟨ [1] , [1] ⟩ ⟩
 
