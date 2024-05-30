@@ -14,7 +14,7 @@ diamond {A} _⇒_ _=α_ = ∀ {t u v : A}
     → t ⇒ u
     → t ⇒ v
       --------------
-    → ∃[ w ] ∃[ x ](w =α x  ×  u ⇒ w  ×  v ⇒ x)
+    → ∃[ w ] ∃[ x ] (w =α x  ×  u ⇒ w  ×  v ⇒ x)
 
 -- Reflexive transitive closure
 data rtc {A : Set} (⇒ : A → A → Set) : A → A → Set where
@@ -135,7 +135,10 @@ _∉'_ : Name → Command → Set
 ... | yes _ = ⊥
 ... | no _ = α ∉ M
 
--- fresh : (M : Term) → (x : Id) × (x ∉ᵥ M)
+postulate fresh : ∀ (M : Term) → ∃[ α ] α ∉ M
+
+-- fresh-app : ∀ {α : Name} {M N : Term} → α ∉ M · N → α ∉ M × α ∉ N
+
 
 
 ---------------- LAMBDA MU TERM SUBSTITUTION ----------------
