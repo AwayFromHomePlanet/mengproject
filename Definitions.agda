@@ -1,9 +1,9 @@
 module Definitions where
 
 open import Data.Product using (∃-syntax; _×_) renaming (_,_ to ⟨_,_⟩)
-open import Data.String using (String; _≟_)
+open import Data.Nat using (ℕ; zero; suc; _+_; _≟_; _⊓_)
 open import Relation.Nullary using (Dec; yes; no)
-open import Data.Unit using (⊤)
+open import Data.Unit using (⊤; tt)
 open import Data.Empty using (⊥)
 open import Relation.Binary.PropositionalEquality using (_≡_)
 
@@ -39,7 +39,7 @@ diamond {A} _⇒_ = ∀ {t u v : A}
 confluent : ∀ {A : Set} → (_⇒_ : A → A → Set) → Set
 confluent ⇒ = diamond (rtc ⇒)
 
--- If t => u and t ===> v, then there exists w such that u ===> w and v => w
+-- If t => u and t =>* v, then there exists w such that u =>* w and v => w
 parallelogram-lemma : ∀ {A : Set} (⇒ : A → A → Set) → diamond ⇒
   → ∀ {t u v : A}
   → ⇒ t u
@@ -68,9 +68,9 @@ rtc-diamond ⇒ dia tu (trans tx xv)
 
 ---------------- LAMBDA MU SYNTAX ----------------
 Id : Set
-Id = String
+Id = ℕ
 Name : Set
-Name = String
+Name = ℕ
 
 infixr 5 ƛ_⇒_
 infixr 5 μ_⇒_
@@ -90,14 +90,13 @@ data Term where
 data Command where
   [_]_ : Name → Term → Command
 
-myterm : Term
-myterm = ƛ "x" ⇒ μ "a" ⇒ [ "a" ] ` "x" · ` "y"
-
 data Value : Term → Set where
   Vx : ∀ {x : Id}            → Value (` x)
   Vƛ : ∀ {x : Id} {M : Term} → Value (ƛ x ⇒ M)
 
--- Means a name does not occur at all in the term/command
+
+---------------- FRESH NAMES ----------------
+-- α ∉ M means α does not occur (free or bound) in M
 infix 4 _∉_
 infix 4 _∉'_
 _∉_  : Name → Term    → Set
@@ -117,8 +116,26 @@ _∉'_ : Name → Command → Set
 ... | yes _ = ⊥
 ... | no _ = α ∉ M
 
-postulate fresh : ∀ (M : Term) → ∃[ α ] α ∉ M
+max  : Term    → Name
+max' : Command → Name
+max  (` x)     = zero
+max  (ƛ x ⇒ M) = max M
+max  (μ α ⇒ C) = α ⊓ max' C
+max  (M · N)   = max M ⊓ max N
+max' ([ α ] M) = α ⊓ max M
 
+postulate fresh-max  : ∀ (M : Term)    → suc (max  M) ∉  M
+-- fresh-max' : ∀ (C : Command) → suc (max' C) ∉' C
+-- fresh-max  (` x) = tt
+-- fresh-max  (ƛ x ⇒ M) = fresh-max M
+-- fresh-max  (μ α ⇒ C) with suc (α ⊓ max' C) ≟ α
+-- ... | yes _ = {!   !}
+-- ... | no  _ = {!   !}
+-- fresh-max  (M · N) = ⟨ {!   !} , {!   !} ⟩
+-- fresh-max' ([ α ] M) = {!   !}
+
+fresh : ∀ (M : Term) → ∃[ α ] α ∉ M
+fresh M = ⟨ suc (max M) , fresh-max M ⟩
 
 ---------------- LAMBDA MU TERM SUBSTITUTION ----------------
 -- Simple term substitution
@@ -410,7 +427,7 @@ postulate
   extensionality : ∀ {A : Set} {_R_ _S_ : A → A → Set}
     → (∀ (x y : A) → ((x R y → x S y) × (x S y → x R y)))
       -----------------------
-    → _R_ ≡ _S_
+    → _R_ ≡ _S_  
 
 same-rtc : _⟶*_ ≡ _==>*_
 same-rtc = extensionality (λ M N → ⟨ (λ M⟶*N → sins-pars M⟶*N) , (λ M==>*N → pars-sins M==>*N) ⟩)
