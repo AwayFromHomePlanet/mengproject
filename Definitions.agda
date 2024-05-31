@@ -2,12 +2,10 @@ module Definitions where
 
 open import Data.Product using (∃-syntax; _×_) renaming (_,_ to ⟨_,_⟩)
 open import Data.String using (String; _≟_)
-open import Relation.Nullary using (Dec; yes; no; ¬_)
-open import Data.Unit using (⊤; tt)
-open import Data.Empty using (⊥; ⊥-elim)
+open import Relation.Nullary using (Dec; yes; no)
+open import Data.Unit using (⊤)
+open import Data.Empty using (⊥)
 open import Relation.Binary.PropositionalEquality using (_≡_)
-open import Axiom.Extensionality.Propositional using (Extensionality)
-open import Agda.Primitive using (lzero; lsuc)
 
 ---------------- PROPERTIES ABOUT RELATIONS ----------------
 -- Reflexive transitive closure
