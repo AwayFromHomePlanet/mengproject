@@ -3,6 +3,8 @@ module Definitions where
 open import Data.Product using (∃-syntax; _×_) renaming (_,_ to ⟨_,_⟩)
 open import Data.String using (String; _≟_)
 open import Relation.Nullary using (Dec; yes; no; ¬_)
+open import Data.Unit using (⊤; tt)
+open import Data.Empty using (⊥; ⊥-elim)
 
 ---------------- PROPERTIES ABOUT RELATIONS ----------------
 diamond : ∀ {A : Set} → (_⇒_ : A → A → Set) → Set
@@ -91,6 +93,28 @@ data Value : Term → Set where
   Vx : ∀ {x : Id}            → Value (` x)
   Vƛ : ∀ {x : Id} {M : Term} → Value (ƛ x ⇒ M)
 
+-- Means a name does not occur at all in the term/command
+infix 4 _∉_
+infix 4 _∉'_
+_∉_  : Name → Term    → Set
+_∉'_ : Name → Command → Set
+
+α ∉  (` x) = ⊤
+
+α ∉  (ƛ x ⇒ M) = α ∉ M
+
+α ∉  (M · N)              = α ∉ M × α ∉ N
+
+α ∉  (μ β ⇒ C) with α ≟ β
+... | yes _ = ⊥
+... | no _ = α ∉' C
+
+α ∉' ([ β ] M)  with α ≟ β
+... | yes _ = ⊥
+... | no _ = α ∉ M
+
+postulate fresh : ∀ (M : Term) → ∃[ α ] α ∉ M
+
 
 ---------------- LAMBDA MU TERM SUBSTITUTION ----------------
 -- Simple term substitution
@@ -171,10 +195,12 @@ data _⟶_ where
     → (ƛ x ⇒ M) · V ⟶ M [ V / x ]β
 
   [μr] : ∀ {α γ : Name} {N : Term} {C : Command}
+    → γ ∉ ((μ α ⇒ C) · N)
     ----------------
     → (μ α ⇒ C) · N ⟶ μ γ ⇒ C [ N ∙ γ / α ]r'
 
   [μl] : ∀ {α γ : Name} {V : Term} {C : Command}
+    → γ ∉ (V · (μ α ⇒ C))
     → Value V
     ----------------
     → V · (μ α ⇒ C) ⟶ μ γ ⇒ C [ V ∙ γ / α ]l'
@@ -296,12 +322,14 @@ data _==>_ where
     → M · N ==> M' [ V / x ]β
 
   [8] : ∀ {α γ : Name} {M N N' : Term} {C : Command}
+    → γ ∉ ((μ α ⇒ C) · N')
     → M ==> μ α ⇒ C
     → N ==> N'
     ----------------
     → M · N ==> μ γ ⇒ C [ N' ∙ γ / α ]r'
 
   [9] : ∀ {α γ : Name} {M V N : Term} {C : Command}
+    → γ ∉ (V · (μ α ⇒ C))
     → Value V
     → M ==> V
     → N ==> μ α ⇒ C
@@ -342,15 +370,15 @@ par-refl' {[ α ] M} = [5] par-refl
 -- Forward direction
 sin-par  : ∀ {M N : Term}    → M ⟶ N  → M ==> N
 sin-par' : ∀ {C D : Command} → C ⟶' D → C ==>' D
-sin-par  ([β] val)     = [7] val par-refl par-refl
-sin-par   [μr]         = [8] par-refl par-refl
-sin-par  ([μl] val)    = [9] val par-refl par-refl
-sin-par  ([app-l] mm') = [4] (sin-par mm') par-refl
-sin-par  ([app-r] nn') = [4] par-refl (sin-par nn')
-sin-par  ([abs] mm')   = [2] (sin-par mm')
-sin-par  ([mu] cc')    = [3] (sin-par' cc')
-sin-par'  [ρ]          = [6] par-refl
-sin-par' ([name] mm')  = [5] (sin-par mm')
+sin-par  ([β] val)      = [7] val par-refl par-refl
+sin-par  ([μr] new)     = [8] new par-refl par-refl
+sin-par  ([μl] new val) = [9] new val par-refl par-refl
+sin-par  ([app-l] mm')  = [4] (sin-par mm') par-refl
+sin-par  ([app-r] nn')  = [4] par-refl (sin-par nn')
+sin-par  ([abs] mm')    = [2] (sin-par mm')
+sin-par  ([mu] cc')     = [3] (sin-par' cc')
+sin-par'  [ρ]           = [6] par-refl
+sin-par' ([name] mm')   = [5] (sin-par mm')
 
 sins-pars : ∀ {M N : Term} → M ⟶* N → M ==>* N
 sins-pars reflx         = reflx
@@ -359,15 +387,15 @@ sins-pars (trans mp pn) = trans (sins-pars mp) (sin-par pn)
 -- Backward direction
 par-sins  : ∀ {M N : Term}    → M ==> N  → M ⟶* N
 par-sins' : ∀ {C D : Command} → C ==>' D → C ⟶*' D
-par-sins   [1]            = reflx
-par-sins  ([2] mm')       = abs* (par-sins mm')
-par-sins  ([3] cc')       = mu* (par-sins' cc')
-par-sins  ([4] mm' nn')   = app* (par-sins mm') (par-sins nn')
-par-sins  ([7] val mλ nv) = trans (app* (par-sins mλ) (par-sins nv)) ([β] val)
-par-sins  ([8] mμ nn')    = trans (app* (par-sins mμ) (par-sins nn')) [μr]
-par-sins  ([9] val mv mμ) = trans (app* (par-sins mv) (par-sins mμ)) ([μl] val)
-par-sins' ([5] mm')       = name* (par-sins mm')
-par-sins' ([6] mμ)        = trans (name* (par-sins mμ)) [ρ]
+par-sins   [1]                = reflx
+par-sins  ([2] mm')           = abs* (par-sins mm')
+par-sins  ([3] cc')           = mu* (par-sins' cc')
+par-sins  ([4] mm' nn')       = app* (par-sins mm') (par-sins nn')
+par-sins  ([7] val mλ nv)     = trans (app* (par-sins mλ) (par-sins nv)) ([β] val)
+par-sins  ([8] new mμ nn')    = trans (app* (par-sins mμ) (par-sins nn')) ([μr] new)
+par-sins  ([9] new val mv mμ) = trans (app* (par-sins mv) (par-sins mμ)) ([μl] new val)
+par-sins' ([5] mm')           = name* (par-sins mm')
+par-sins' ([6] mμ)            = trans (name* (par-sins mμ)) [ρ]
 
 pars-sins : ∀ {M N : Term} → M ==>* N → M ⟶* N
 pars-sins reflx         = reflx
