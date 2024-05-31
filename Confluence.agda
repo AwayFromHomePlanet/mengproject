@@ -4,22 +4,44 @@ open import Definitions
 open import Data.Product using (∃-syntax; _×_) renaming (_,_ to ⟨_,_⟩)
 
 -- The substitution lemmas
-postulate β-subst-lemma : ∀ {z : Id} {M N P Q : Term} → M ==> N → P ==> Q → M [ P / z ]β ==> N [ Q / z ]β
-postulate ρ-subst-lemma : ∀ {α β : Name} {C D : Command} → C ==>' D → C [ α / β ]ρ' ==>' D [ α / β ]ρ'
-postulate μr-subst-lemma : ∀ {α γ δ : Name} {C D : Command} {M N : Term} → C ==>' D → M ==> N → γ ∉ (μ α ⇒ C) · M → δ ∉ (μ α ⇒ D) · N → μ γ ⇒ C [ M ∙ γ / α ]r' ==> μ δ ⇒ D [ N ∙ δ / α ]r'
-postulate μl-subst-lemma : ∀ {α γ δ : Name} {C D : Command} {M N : Term} → C ==>' D → M ==> N → γ ∉ M · (μ α ⇒ C) → δ ∉ N · (μ α ⇒ D) → μ γ ⇒ C [ M ∙ γ / α ]l' ==> μ δ ⇒ D [ N ∙ δ / α ]l'
+postulate 
+  β-subst-lemma : ∀ {z : Id} {M N P Q : Term} 
+    → M ==> N 
+    → P ==> Q 
+    ----------------
+    → M [ P / z ]β ==> N [ Q / z ]β
+
+  ρ-subst-lemma : ∀ {α β : Name} {C D : Command} 
+    → C ==>' D 
+    ----------------
+    → C [ α / β ]ρ' ==>' D [ α / β ]ρ'
+
+  μr-subst-lemma : ∀ {α γ δ : Name} {C D : Command} {M N : Term} 
+    → C ==>' D 
+    → M ==> N 
+    → γ ∉ (μ α ⇒ C) · M 
+    → δ ∉ (μ α ⇒ D) · N 
+    ----------------
+    → μ γ ⇒ C [ M ∙ γ / α ]r' ==> μ δ ⇒ D [ N ∙ δ / α ]r'
+    
+  μl-subst-lemma : ∀ {α γ δ : Name} {C D : Command} {M N : Term} 
+    → C ==>' D 
+    → M ==> N 
+    → γ ∉ M · (μ α ⇒ C) 
+    → δ ∉ N · (μ α ⇒ D) 
+    ----------------
+    → μ γ ⇒ C [ M ∙ γ / α ]l' ==> μ δ ⇒ D [ N ∙ δ / α ]l'
 
 -- Values only reduce to values
 val-red-val : ∀ {V V' : Term} → V ==> V' → Value V → Value V'
 val-red-val [1] Vx = Vx
 val-red-val ([2] vv') Vƛ = Vƛ
 
--- The main theorem: If P0 ==> P1 and P0 ==> P2, there exists some P3 such that P1 ==> P3 and P2 ==> P3
+-- If P0 ==> P1 and P0 ==> P2, there exists some P3 such that P1 ==> P3 and P2 ==> P3
 {-# TERMINATING #-}
 ==>-diamond  : diamond _==>_
 ==>-diamond' : diamond _==>'_
 
--- Helper function for main theorem
 reverse  : diamond _==>_
 reverse' : diamond _==>'_ 
 reverse  p0p1 p0p2 with ==>-diamond p0p2 p0p1
@@ -121,3 +143,7 @@ reverse' c0c1 c0c2 with ==>-diamond' c0c2 c0c1
 ==>-diamond' ([6] {α} {β} m0μc1) ([6] m0μc2) with ==>-diamond m0μc1 m0μc2
 ... | ⟨ μ β ⇒ c3 , ⟨ [3] c1c3 , [3] c2c3 ⟩ ⟩ 
   = ⟨ c3 [ α / β ]ρ' , ⟨ ρ-subst-lemma c1c3 , ρ-subst-lemma c2c3 ⟩ ⟩
+
+-- MAIN RESULT: ⟶ is confluent
+⟶-confluent : confluent _⟶_
+⟶-confluent rewrite same-rtc = rtc-diamond _==>_ ==>-diamond

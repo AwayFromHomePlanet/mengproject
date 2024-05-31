@@ -5,18 +5,13 @@ open import Data.String using (String; _≟_)
 open import Relation.Nullary using (Dec; yes; no; ¬_)
 open import Data.Unit using (⊤; tt)
 open import Data.Empty using (⊥; ⊥-elim)
+open import Relation.Binary.PropositionalEquality using (_≡_)
+open import Axiom.Extensionality.Propositional using (Extensionality)
+open import Agda.Primitive using (lzero; lsuc)
 
 ---------------- PROPERTIES ABOUT RELATIONS ----------------
-diamond : ∀ {A : Set} → (_⇒_ : A → A → Set) → Set
-diamond {A} _⇒_ = ∀ {t u v : A}
-    → t ⇒ u
-    → t ⇒ v
-      --------------
-    → ∃[ w ](u ⇒ w × v ⇒ w)
-
 -- Reflexive transitive closure
 data rtc {A : Set} (⇒ : A → A → Set) : A → A → Set where
-
   reflx : ∀ {M : A}
     --------
     → rtc ⇒ M M
@@ -34,6 +29,17 @@ trans-rtc : {A : Set} {⇒ : A → A → Set} {M N P : A}
   → rtc ⇒ M P
 trans-rtc mn reflx = mn
 trans-rtc mn (trans nq qp) = trans (trans-rtc mn nq) qp
+
+-- Diamond and Church-Rosser properties
+diamond : ∀ {A : Set} → (_⇒_ : A → A → Set) → Set
+diamond {A} _⇒_ = ∀ {t u v : A}
+    → t ⇒ u
+    → t ⇒ v
+      --------------
+    → ∃[ w ](u ⇒ w × v ⇒ w)
+
+confluent : ∀ {A : Set} → (_⇒_ : A → A → Set) → Set
+confluent ⇒ = diamond (rtc ⇒)
 
 -- If t => u and t ===> v, then there exists w such that u ===> w and v => w
 parallelogram-lemma : ∀ {A : Set} (⇒ : A → A → Set) → diamond ⇒
@@ -400,3 +406,13 @@ par-sins' ([6] mμ)            = trans (name* (par-sins mμ)) [ρ]
 pars-sins : ∀ {M N : Term} → M ==>* N → M ⟶* N
 pars-sins reflx         = reflx
 pars-sins (trans mp pn) = trans-rtc (pars-sins mp) (par-sins pn)
+
+-- Both reductions are equal by extensionality
+postulate
+  extensionality : ∀ {A : Set} {_R_ _S_ : A → A → Set}
+    → (∀ (x y : A) → ((x R y → x S y) × (x S y → x R y)))
+      -----------------------
+    → _R_ ≡ _S_
+
+same-rtc : _⟶*_ ≡ _==>*_
+same-rtc = extensionality (λ M N → ⟨ (λ M⟶*N → sins-pars M⟶*N) , (λ M==>*N → pars-sins M==>*N) ⟩)
