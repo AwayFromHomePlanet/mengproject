@@ -237,10 +237,9 @@ data _⟶_ where
     ----------------
     → (ƛ x ⇒ M) · V ⟶ M [ V / x ]β
 
-  [ν] : ∀ {x : Id} {M V : Term}
-    → Value V
+  [ν] : ∀ {x : Id} {M N : Term}
     ----------------
-    → ⁅ ν x ⇒ M ⁆ V ⟶ M [ V / x ]β
+    → ⁅ ν x ⇒ M ⁆ N ⟶ M [ N / x ]β
 
   [μr] : ∀ {α γ : Name} {M N : Term}
     → γ ∉ ((μ α ⇒ M) · N)
@@ -346,12 +345,11 @@ data _==>_ where
     ----------------
     → M · N ==> M' [ V / x ]β
 
-  [10] : ∀ {x : Id} {M M' N V : Term}
-    → Value V
+  [10] : ∀ {x : Id} {M M' N N' : Term}
     → M ==> ν x ⇒ M'
-    → N ==> V
+    → N ==> N'
     ----------------
-    → ⁅ M ⁆ N ==> M' [ V / x ]β
+    → ⁅ M ⁆ N ==> M' [ N' / x ]β
 
   [11] : ∀ {α γ : Name} {M M' N N' : Term}
     → γ ∉ ((μ α ⇒ M') · N')
@@ -395,7 +393,7 @@ par-refl {[ α ] M}  = [7] par-refl
 -- Forward direction
 sin-par : ∀ {M N : Term} → M ⟶ N → M ==> N
 sin-par ([β] val)                  = [9] val par-refl par-refl
-sin-par ([ν] val)                  = [10] val par-refl par-refl
+sin-par [ν]                        = [10] par-refl par-refl
 sin-par ([μr] new)                 = [11] new par-refl par-refl
 sin-par ([μl] new val)             = [12] new val par-refl par-refl
 sin-par [δ]                        = [13] par-refl par-refl
@@ -425,7 +423,7 @@ par-sins ([6] mm' nn')        = neg* (par-sins mm') (par-sins nn')
 par-sins ([7] {α} mm')        = ctxt* ([ α ] ∙) (par-sins mm')
 par-sins ([8] {α} mμ)         = trans (ctxt* ([ α ] ∙) (par-sins mμ)) [ρ]
 par-sins ([9] val mλ nv)      = trans (app* (par-sins mλ) (par-sins nv)) ([β] val)
-par-sins ([10] val mλ nv)     = trans (neg* (par-sins mλ) (par-sins nv)) ([ν] val)
+par-sins ([10] mλ nv)         = trans (neg* (par-sins mλ) (par-sins nv)) [ν]
 par-sins ([11] new mμ nn')    = trans (app* (par-sins mμ) (par-sins nn')) ([μr] new)
 par-sins ([12] new val mv nμ) = trans (app* (par-sins mv) (par-sins nμ)) ([μl] new val)
 par-sins ([13] mμ nn')        = trans (neg* (par-sins mμ) (par-sins nn')) [δ]
