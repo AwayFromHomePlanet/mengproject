@@ -81,10 +81,10 @@ infix 7 ⁅_⁆_
 infix 9 `_
 
 data Term : Set where
-  `_   : Id → Term
-  ƛ_⇒_ : Id → Term → Term
+  `_   : Id   → Term
+  ƛ_⇒_ : Id   → Term → Term
   _·_  : Term → Term → Term
-  ν_⇒_ : Id → Term → Term
+  ν_⇒_ : Id   → Term → Term
   ⁅_⁆_ : Term → Term → Term 
   μ_⇒_ : Name → Term → Term
   [_]_ : Name → Term → Term
@@ -110,7 +110,7 @@ _∉_ : Name → Term → Set
 ...              | yes _ = ⊥
 ...              | no  _ = α ∉ M
 
-max  : Term    → Name
+max : Term → Name
 max (` x)     = zero
 max (ƛ x ⇒ M) = max M
 max (M · N)   = max M ⊓ max N
@@ -119,7 +119,7 @@ max (⁅ M ⁆ N) = max M ⊓ max N
 max (μ α ⇒ M) = α ⊓ max M
 max ([ α ] M) = α ⊓ max M
 
-postulate fresh-max  : ∀ (M : Term)    → suc (max  M) ∉  M
+postulate fresh-max : ∀ (M : Term) → suc (max  M) ∉  M
 -- fresh-max' : ∀ (C : Command) → suc (max' C) ∉' C
 -- fresh-max  (` x) = tt
 -- fresh-max  (ƛ x ⇒ M) = fresh-max M
@@ -134,7 +134,7 @@ fresh M = ⟨ suc (max M) , fresh-max M ⟩
 
 ---------------- LAMBDA MU TERM SUBSTITUTION ----------------
 -- Simple term substitution
-_[_/_]β  : Term    → Term → Id → Term
+_[_/_]β : Term → Term → Id → Term
 (` y)     [ N / x ]β with x ≟ y
 ...                     | yes _ = N
 ...                     | no  _ = ` y
@@ -150,7 +150,7 @@ _[_/_]β  : Term    → Term → Id → Term
 ([ α ] M) [ N / x ]β            = [ α ] M [ N / x ]β
 
 -- Simple name substitution
-_[_/_]ρ  : Term    → Name → Name → Term
+_[_/_]ρ : Term → Name → Name → Term
 (` x)     [ α / β ]ρ             = ` x
 (ƛ x ⇒ M) [ α / β ]ρ             = ƛ x ⇒ M [ α / β ]ρ
 (M · N)   [ α / β ]ρ             = M [ α / β ]ρ · N [ α / β ]ρ
@@ -162,7 +162,7 @@ _[_/_]ρ  : Term    → Name → Name → Term
 ...                      | no  _ = [ γ ] M [ α / β ]ρ
 
 -- Right structural substitution
-_[_∙_/_]r  : Term    → Term → Name → Name → Term
+_[_∙_/_]r : Term → Term → Name → Name → Term
 (` x)     [ N ∙ γ / α ]r             = ` x
 (ƛ x ⇒ M) [ N ∙ γ / α ]r             = ƛ x ⇒ M [ N ∙ γ / α ]r
 (M · P)   [ N ∙ γ / α ]r             = M [ N ∙ γ / α ]r · P [ N ∙ γ / α ]r
@@ -174,7 +174,7 @@ _[_∙_/_]r  : Term    → Term → Name → Name → Term
 ...                          | no  _ = [ β ] M [ N ∙ γ / α ]r
 
 -- Left structural substitution
-_[_∙_/_]l  : Term    → Term → Name → Name → Term
+_[_∙_/_]l : Term → Term → Name → Name → Term
 (` x)     [ N ∙ γ / α ]l             = ` x
 (ƛ x ⇒ M) [ N ∙ γ / α ]l             = ƛ x ⇒ M [ N ∙ γ / α ]l
 (M · P)   [ N ∙ γ / α ]l             = M [ N ∙ γ / α ]l · P [ N ∙ γ / α ]l
@@ -207,15 +207,15 @@ infix 7 ⁅_⁆l_
 infix 7 ⁅_⁆r_
 
 data Ctxt : Set where
-  ∙   : Ctxt
-  ƛ_⇒_ : Id → Ctxt → Ctxt
+  ∙     : Ctxt
+  ƛ_⇒_  : Id   → Ctxt → Ctxt
   _·l_  : Ctxt → Term → Ctxt
   _·r_  : Term → Ctxt → Ctxt
-  ν_⇒_ : Id → Ctxt → Ctxt
+  ν_⇒_  : Id   → Ctxt → Ctxt
   ⁅_⁆l_ : Ctxt → Term → Ctxt
   ⁅_⁆r_ : Term → Ctxt → Ctxt
-  μ_⇒_ : Name → Ctxt → Ctxt
-  [_]_ : Name → Ctxt → Ctxt
+  μ_⇒_  : Name → Ctxt → Ctxt
+  [_]_  : Name → Ctxt → Ctxt
 
 _⌜_⌟ : Ctxt → Term → Term
 ∙          ⌜ M ⌟ = M
@@ -260,46 +260,6 @@ data _⟶_ where
   [ρ] : ∀ {α β : Name} {M : Term}
     ----------------
     → [ α ] μ β ⇒ M ⟶ M [ α / β ]ρ
-{--
-  [abs] : ∀ {x : Id} {M M' : Term}
-    → M ⟶ M'
-    ----------------
-    → ƛ x ⇒ M ⟶ ƛ x ⇒ M'
-
-  [app-l] : ∀ {M M' N : Term}
-    → M ⟶ M'
-    ----------------
-    → M · N ⟶ M' · N
-
-  [app-r] : ∀ {M N N' : Term}
-    → N ⟶ N'
-    ----------------
-    → M · N ⟶ M · N'
-
-  [nu] : ∀ {x : Id} {M M' : Term}
-    → M ⟶ M'
-    ----------------
-    → ν x ⇒ M ⟶ ν x ⇒ M'
-
-  [neg-l] : ∀ {M M' N : Term}
-    → M ⟶ M'
-    ----------------
-    → ⁅ M ⁆ N ⟶ ⁅ M' ⁆ N
-
-  [neg-r] : ∀ {M N N' : Term}
-    → N ⟶ N'
-    ----------------
-    → ⁅ M ⁆ N ⟶ ⁅ M ⁆ N'
-
-  [mu] : ∀ {α : Name} {M M' : Term}
-    → M ⟶ M'
-    ----------------
-    → μ α ⇒ M ⟶ μ α ⇒ M'
-
-  [name] : ∀ {α : Name} {M M' : Term}
-    → M ⟶ M'
-    ----------------
-    → [ α ] M ⟶ [ α ] M'-}
   
   [ctxt] : ∀ {M M' : Term} {C : Ctxt}
     → M ⟶ M'
@@ -312,13 +272,26 @@ infixr 4 _⟶*_
 _⟶*_  : Term    → Term    → Set
 _⟶*_  = rtc _⟶_
 
-ctxt* : ∀ {M M' : Term} {C : Ctxt}
+ctxt* : ∀ {M M' : Term} (C : Ctxt)
   → M ⟶* M'
   ----------------
   → C ⌜ M ⌟ ⟶* C ⌜ M' ⌟
-ctxt* reflx = reflx
-ctxt* (trans mn np) = trans (ctxt* mn) ([ctxt] np)
+ctxt* _ reflx = reflx
+ctxt* c (trans mn np) = trans (ctxt* c mn) ([ctxt] np)
 
+app* : ∀ {M M' N N' : Term}
+  → M ⟶* M'
+  → N ⟶* N'
+  ----------------
+  → M · N ⟶* M' · N'
+app* {M} {M'} {N} {N'} mm' nn' = trans-rtc (ctxt* (∙ ·l N) mm') (ctxt* (M' ·r ∙) nn')
+
+neg* : ∀ {M M' N N' : Term}
+  → M ⟶* M'
+  → N ⟶* N'
+  ----------------
+  → ⁅ M ⁆ N ⟶* ⁅ M' ⁆ N'
+neg* {M} {M'} {N} {N'} mm' nn' = trans-rtc (ctxt* (⁅ ∙ ⁆l N) mm') (ctxt* (⁅ M' ⁆r ∙) nn')
 
 ---------------- LMUV PARALLEL REDUCTION ----------------
 infixr 4 _==>_
@@ -420,40 +393,42 @@ par-refl {[ α ] M}  = [7] par-refl
 
 ---------------- ⟶* = ==>* ----------------
 -- Forward direction
-sin-par  : ∀ {M N : Term}    → M ⟶ N  → M ==> N
-sin-par ([β] val) = [9] val par-refl par-refl
-sin-par ([ν] val) = [10] val par-refl par-refl
-sin-par ([μr] free) = [11] free par-refl par-refl
-sin-par ([μl] free val) = [12] free val par-refl par-refl
-sin-par [δ] = [13] par-refl par-refl
-sin-par [ρ] = [8] par-refl
-sin-par ([ctxt] {C = ∙} mn) = sin-par mn
-sin-par ([ctxt] {C = ƛ x ⇒ C} mn) = [2] (sin-par ([ctxt] mn))
-sin-par ([ctxt] {C = C ·l P} mn) = [5] (sin-par ([ctxt] mn)) par-refl
-sin-par ([ctxt] {C = P ·r C} mn) = [5] par-refl (sin-par ([ctxt] mn))
-sin-par ([ctxt] {C = ν x ⇒ C} mn) = [3] (sin-par ([ctxt] mn))
+sin-par : ∀ {M N : Term} → M ⟶ N → M ==> N
+sin-par ([β] val)                  = [9] val par-refl par-refl
+sin-par ([ν] val)                  = [10] val par-refl par-refl
+sin-par ([μr] new)                 = [11] new par-refl par-refl
+sin-par ([μl] new val)             = [12] new val par-refl par-refl
+sin-par [δ]                        = [13] par-refl par-refl
+sin-par [ρ]                        = [8] par-refl
+sin-par ([ctxt] {C = ∙} mn)        = sin-par mn
+sin-par ([ctxt] {C = ƛ x ⇒ C} mn)  = [2] (sin-par ([ctxt] mn))
+sin-par ([ctxt] {C = C ·l P} mn)   = [5] (sin-par ([ctxt] mn)) par-refl
+sin-par ([ctxt] {C = P ·r C} mn)   = [5] par-refl (sin-par ([ctxt] mn))
+sin-par ([ctxt] {C = ν x ⇒ C} mn)  = [3] (sin-par ([ctxt] mn))
 sin-par ([ctxt] {C = ⁅ C ⁆l P} mn) = [6] (sin-par ([ctxt] mn)) par-refl
 sin-par ([ctxt] {C = ⁅ P ⁆r C} mn) = [6] par-refl (sin-par ([ctxt] mn))
-sin-par ([ctxt] {C = μ α ⇒ C} mn) = [4] (sin-par ([ctxt] mn))
-sin-par ([ctxt] {C = [ α ] C} mn) = [7] (sin-par ([ctxt] mn))
+sin-par ([ctxt] {C = μ α ⇒ C} mn)  = [4] (sin-par ([ctxt] mn))
+sin-par ([ctxt] {C = [ α ] C} mn)  = [7] (sin-par ([ctxt] mn))
 
 sins-pars : ∀ {M N : Term} → M ⟶* N → M ==>* N
 sins-pars reflx         = reflx
 sins-pars (trans mp pn) = trans (sins-pars mp) (sin-par pn)
 
 -- Backward direction
-{--
-par-sins  : ∀ {M N : Term}    → M ==> N  → M ⟶* N
-par-sins' : ∀ {C D : Command} → C ==>' D → C ⟶*' D
-par-sins   [1]                = reflx
-par-sins  ([2] mm')           = abs* (par-sins mm')
-par-sins  ([3] cc')           = mu* (par-sins' cc')
-par-sins  ([4] mm' nn')       = app* (par-sins mm') (par-sins nn')
-par-sins  ([7] val mλ nv)     = trans (app* (par-sins mλ) (par-sins nv)) ([β] val)
-par-sins  ([8] new mμ nn')    = trans (app* (par-sins mμ) (par-sins nn')) ([μr] new)
-par-sins  ([9] new val mv mμ) = trans (app* (par-sins mv) (par-sins mμ)) ([μl] new val)
-par-sins' ([5] mm')           = name* (par-sins mm')
-par-sins' ([6] mμ)            = trans (name* (par-sins mμ)) [ρ]
+par-sins : ∀ {M N : Term} → M ==> N → M ⟶* N
+par-sins [1]                  = reflx
+par-sins ([2] {x} mm')        = ctxt* (ƛ x ⇒ ∙) (par-sins mm')
+par-sins ([3] {x} mm')        = ctxt* (ν x ⇒ ∙) (par-sins mm')
+par-sins ([4] {α} mm')        = ctxt* (μ α ⇒ ∙) (par-sins mm')
+par-sins ([5] mm' nn')        = app* (par-sins mm') (par-sins nn')
+par-sins ([6] mm' nn')        = neg* (par-sins mm') (par-sins nn')
+par-sins ([7] {α} mm')        = ctxt* ([ α ] ∙) (par-sins mm')
+par-sins ([8] {α} mμ)         = trans (ctxt* ([ α ] ∙) (par-sins mμ)) [ρ]
+par-sins ([9] val mλ nv)      = trans (app* (par-sins mλ) (par-sins nv)) ([β] val)
+par-sins ([10] val mλ nv)     = trans (neg* (par-sins mλ) (par-sins nv)) ([ν] val)
+par-sins ([11] new mμ nn')    = trans (app* (par-sins mμ) (par-sins nn')) ([μr] new)
+par-sins ([12] new val mv nμ) = trans (app* (par-sins mv) (par-sins nμ)) ([μl] new val)
+par-sins ([13] mμ nn')        = trans (neg* (par-sins mμ) (par-sins nn')) [δ]
 
 pars-sins : ∀ {M N : Term} → M ==>* N → M ⟶* N
 pars-sins reflx         = reflx
@@ -468,4 +443,3 @@ postulate
 
 same-rtc : _⟶*_ ≡ _==>*_
 same-rtc = extensionality (λ M N → ⟨ (λ M⟶*N → sins-pars M⟶*N) , (λ M==>*N → pars-sins M==>*N) ⟩)
--}
