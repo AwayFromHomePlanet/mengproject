@@ -162,42 +162,56 @@ _[_/_]ρ : Term → Name → Name → Term
 ...                      | no  _ = [ γ ] M [ α / β ]ρ
 
 -- Right structural substitution
-_[_∙_/_]r : Term → Term → Name → Name → Term
-(` x)     [ N ∙ γ / α ]r             = ` x
-(ƛ x ⇒ M) [ N ∙ γ / α ]r             = ƛ x ⇒ M [ N ∙ γ / α ]r
-(M · P)   [ N ∙ γ / α ]r             = M [ N ∙ γ / α ]r · P [ N ∙ γ / α ]r
-(ν x ⇒ M) [ N ∙ γ / α ]r             = ν x ⇒ M [ N ∙ γ / α ]r
-(⁅ M ⁆ P) [ N ∙ γ / α ]r             = ⁅ M [ N ∙ γ / α ]r ⁆ P [ N ∙ γ / α ]r
-(μ β ⇒ C) [ N ∙ γ / α ]r             = μ β ⇒ C [ N ∙ γ / α ]r
-([ β ] M) [ N ∙ γ / α ]r with α ≟ β
-...                          | yes _ = [ γ ] M [ N ∙ γ / α ]r · N
-...                          | no  _ = [ β ] M [ N ∙ γ / α ]r
+_[_∙_/_]μr : Term → Term → Name → Name → Term
+(` x)     [ N ∙ γ / α ]μr             = ` x
+(ƛ x ⇒ M) [ N ∙ γ / α ]μr             = ƛ x ⇒ M [ N ∙ γ / α ]μr
+(M · P)   [ N ∙ γ / α ]μr             = M [ N ∙ γ / α ]μr · P [ N ∙ γ / α ]μr
+(ν x ⇒ M) [ N ∙ γ / α ]μr             = ν x ⇒ M [ N ∙ γ / α ]μr
+(⁅ M ⁆ P) [ N ∙ γ / α ]μr             = ⁅ M [ N ∙ γ / α ]μr ⁆ P [ N ∙ γ / α ]μr
+(μ β ⇒ C) [ N ∙ γ / α ]μr             = μ β ⇒ C [ N ∙ γ / α ]μr
+([ β ] M) [ N ∙ γ / α ]μr with α ≟ β
+...                          | yes _ = [ γ ] M [ N ∙ γ / α ]μr · N
+...                          | no  _ = [ β ] M [ N ∙ γ / α ]μr
 
 -- Left structural substitution
-_[_∙_/_]l : Term → Term → Name → Name → Term
-(` x)     [ N ∙ γ / α ]l             = ` x
-(ƛ x ⇒ M) [ N ∙ γ / α ]l             = ƛ x ⇒ M [ N ∙ γ / α ]l
-(M · P)   [ N ∙ γ / α ]l             = M [ N ∙ γ / α ]l · P [ N ∙ γ / α ]l
-(ν x ⇒ M) [ N ∙ γ / α ]l             = ν x ⇒ M [ N ∙ γ / α ]l
-(⁅ M ⁆ P) [ N ∙ γ / α ]l             = ⁅ M [ N ∙ γ / α ]l ⁆ P [ N ∙ γ / α ]l
-(μ β ⇒ C) [ N ∙ γ / α ]l             = μ β ⇒ C [ N ∙ γ / α ]l
-([ β ] M) [ N ∙ γ / α ]l with α ≟ β
-...                          | yes _ = [ γ ] N · M [ N ∙ γ / α ]l
-...                          | no  _ = [ β ] M [ N ∙ γ / α ]l
+_[_∙_/_]μl : Term → Term → Name → Name → Term
+(` x)     [ N ∙ γ / α ]μl             = ` x
+(ƛ x ⇒ M) [ N ∙ γ / α ]μl             = ƛ x ⇒ M [ N ∙ γ / α ]μl
+(M · P)   [ N ∙ γ / α ]μl             = M [ N ∙ γ / α ]μl · P [ N ∙ γ / α ]μl
+(ν x ⇒ M) [ N ∙ γ / α ]μl             = ν x ⇒ M [ N ∙ γ / α ]μl
+(⁅ M ⁆ P) [ N ∙ γ / α ]μl             = ⁅ M [ N ∙ γ / α ]μl ⁆ P [ N ∙ γ / α ]μl
+(μ β ⇒ C) [ N ∙ γ / α ]μl             = μ β ⇒ C [ N ∙ γ / α ]μl
+([ β ] M) [ N ∙ γ / α ]μl with α ≟ β
+...                          | yes _ = [ γ ] N · M [ N ∙ γ / α ]μl
+...                          | no  _ = [ β ] M [ N ∙ γ / α ]μl
 
--- Insertion
-_[_/_]δ : Term → Term → Name → Term
-(` x) [ N / α ]δ                = ` x
-(ƛ x ⇒ M) [ N / α ]δ            = ƛ x ⇒ M [ N / α ]δ
-(M · P) [ N / α ]δ              = M [ N / α ]δ · P [ N / α ]δ
-(ν x ⇒ M) [ N / α ]δ            = ν x ⇒ M [ N / α ]δ
-(⁅ M ⁆ P) [ N / α ]δ            = ⁅ M [ N / α ]δ ⁆ P [ N / α ]δ
-(μ β ⇒ M) [ N / α ]δ with α ≟ β
+-- Right insertion
+_[_/_]δr : Term → Term → Name → Term
+(` x)     [ N / α ]δr            = ` x
+(ƛ x ⇒ M) [ N / α ]δr            = ƛ x ⇒ M [ N / α ]δr
+(M · P)   [ N / α ]δr            = M [ N / α ]δr · P [ N / α ]δr
+(ν x ⇒ M) [ N / α ]δr            = ν x ⇒ M [ N / α ]δr
+(⁅ M ⁆ P) [ N / α ]δr            = ⁅ M [ N / α ]δr ⁆ P [ N / α ]δr
+(μ β ⇒ M) [ N / α ]δr with α ≟ β
 ...                     | yes _ = μ β ⇒ M
-...                     | no  _ = μ β ⇒ M [ N / α ]δ
-([ β ] M) [ N / α ]δ with α ≟ β
+...                     | no  _ = μ β ⇒ M [ N / α ]δr
+([ β ] M) [ N / α ]δr with α ≟ β
 ...                     | yes _ = ⁅ M ⁆ N
-...                     | no  _ = [ β ] M [ N / α ]δ
+...                     | no  _ = [ β ] M [ N / α ]δr
+
+-- Left insertion
+_[_/_]δl : Term → Term → Name → Term
+(` x)     [ N / α ]δl            = ` x
+(ƛ x ⇒ M) [ N / α ]δl            = ƛ x ⇒ M [ N / α ]δl
+(M · P)   [ N / α ]δl            = M [ N / α ]δl · P [ N / α ]δl
+(ν x ⇒ M) [ N / α ]δl            = ν x ⇒ M [ N / α ]δl
+(⁅ M ⁆ P) [ N / α ]δl            = ⁅ M [ N / α ]δl ⁆ P [ N / α ]δl
+(μ β ⇒ M) [ N / α ]δl with α ≟ β
+...                     | yes _ = μ β ⇒ M
+...                     | no  _ = μ β ⇒ M [ N / α ]δl
+([ β ] M) [ N / α ]δl with α ≟ β
+...                     | yes _ = ⁅ N ⁆ M
+...                     | no  _ = [ β ] M [ N / α ]δl
 
 ---------------- LMUV SINGLE STEP REDUCTION ----------------
 
@@ -237,24 +251,30 @@ data _⟶_ where
     ----------------
     → (ƛ x ⇒ M) · V ⟶ M [ V / x ]β
 
-  [ν] : ∀ {x : Id} {M N : Term}
+  [ν] : ∀ {x : Id} {M V : Term}
+    → Value V
     ----------------
-    → ⁅ ν x ⇒ M ⁆ N ⟶ M [ N / x ]β
+    → ⁅ ν x ⇒ M ⁆ V ⟶ M [ V / x ]β
 
   [μr] : ∀ {α γ : Name} {M N : Term}
     → γ ∉ ((μ α ⇒ M) · N)
     ----------------
-    → (μ α ⇒ M) · N ⟶ μ γ ⇒ M [ N ∙ γ / α ]r
+    → (μ α ⇒ M) · N ⟶ μ γ ⇒ M [ N ∙ γ / α ]μr
 
   [μl] : ∀ {α γ : Name} {M V : Term}
     → γ ∉ (V · (μ α ⇒ M))
     → Value V
     ----------------
-    → V · (μ α ⇒ M) ⟶ μ γ ⇒ M [ V ∙ γ / α ]l
+    → V · (μ α ⇒ M) ⟶ μ γ ⇒ M [ V ∙ γ / α ]μl
 
-  [δ] : ∀ {α : Name} {M N : Term}
+  [δr] : ∀ {α : Name} {M N : Term}
     ----------------
-    → ⁅ μ α ⇒ M ⁆ N ⟶ M [ N / α ]δ
+    → ⁅ μ α ⇒ M ⁆ N ⟶ M [ N / α ]δr
+
+  [δl] : ∀ {α : Name} {M V : Term}
+    → Value V
+    ----------------
+    → ⁅ V ⁆ μ α ⇒ M ⟶ M [ V / α ]δl
 
   [ρ] : ∀ {α β : Name} {M : Term}
     ----------------
@@ -345,18 +365,19 @@ data _==>_ where
     ----------------
     → M · N ==> M' [ V / x ]β
 
-  [10] : ∀ {x : Id} {M M' N N' : Term}
+  [10] : ∀ {x : Id} {M M' N V : Term}
+    → Value V
     → M ==> ν x ⇒ M'
-    → N ==> N'
+    → N ==> V
     ----------------
-    → ⁅ M ⁆ N ==> M' [ N' / x ]β
+    → ⁅ M ⁆ N ==> M' [ V / x ]β
 
   [11] : ∀ {α γ : Name} {M M' N N' : Term}
     → γ ∉ ((μ α ⇒ M') · N')
     → M ==> μ α ⇒ M'
     → N ==> N'
     ----------------
-    → M · N ==> μ γ ⇒ M' [ N' ∙ γ / α ]r
+    → M · N ==> μ γ ⇒ M' [ N' ∙ γ / α ]μr
 
   [12] : ∀ {α γ : Name} {M V N N' : Term}
     → γ ∉ (V · (μ α ⇒ N'))
@@ -364,13 +385,20 @@ data _==>_ where
     → M ==> V
     → N ==> μ α ⇒ N'
     ----------------
-    → M · N ==> μ γ ⇒ N' [ V ∙ γ / α ]l
+    → M · N ==> μ γ ⇒ N' [ V ∙ γ / α ]μl
 
   [13] : ∀ {α : Name} {M M' N N' : Term}
     → M ==> μ α ⇒ M'
     → N ==> N'
     ----------------
-    → ⁅ M ⁆ N ==> M' [ N' / α ]δ
+    → ⁅ M ⁆ N ==> M' [ N' / α ]δr
+
+  [14] : ∀ {α : Name} {M V N N' : Term}
+    → Value V
+    → M ==> V
+    → N ==> μ α ⇒ N'
+    ----------------
+    → ⁅ M ⁆ N ==> N' [ V / α ]δl
 
 
 -- Reflexive transitive closure of lmuv parallel reduction
@@ -393,10 +421,11 @@ par-refl {[ α ] M}  = [7] par-refl
 -- Forward direction
 sin-par : ∀ {M N : Term} → M ⟶ N → M ==> N
 sin-par ([β] val)                  = [9] val par-refl par-refl
-sin-par [ν]                        = [10] par-refl par-refl
+sin-par ([ν] val)                  = [10] val par-refl par-refl
 sin-par ([μr] new)                 = [11] new par-refl par-refl
 sin-par ([μl] new val)             = [12] new val par-refl par-refl
-sin-par [δ]                        = [13] par-refl par-refl
+sin-par [δr]                       = [13] par-refl par-refl
+sin-par ([δl] val)                 = [14] val par-refl par-refl
 sin-par [ρ]                        = [8] par-refl
 sin-par ([ctxt] {C = ∙} mn)        = sin-par mn
 sin-par ([ctxt] {C = ƛ x ⇒ C} mn)  = [2] (sin-par ([ctxt] mn))
@@ -423,10 +452,11 @@ par-sins ([6] mm' nn')        = neg* (par-sins mm') (par-sins nn')
 par-sins ([7] {α} mm')        = ctxt* ([ α ] ∙) (par-sins mm')
 par-sins ([8] {α} mμ)         = trans (ctxt* ([ α ] ∙) (par-sins mμ)) [ρ]
 par-sins ([9] val mλ nv)      = trans (app* (par-sins mλ) (par-sins nv)) ([β] val)
-par-sins ([10] mλ nv)         = trans (neg* (par-sins mλ) (par-sins nv)) [ν]
+par-sins ([10] val mλ nv)     = trans (neg* (par-sins mλ) (par-sins nv)) ([ν] val)
 par-sins ([11] new mμ nn')    = trans (app* (par-sins mμ) (par-sins nn')) ([μr] new)
 par-sins ([12] new val mv nμ) = trans (app* (par-sins mv) (par-sins nμ)) ([μl] new val)
-par-sins ([13] mμ nn')        = trans (neg* (par-sins mμ) (par-sins nn')) [δ]
+par-sins ([13] mμ nn')        = trans (neg* (par-sins mμ) (par-sins nn')) [δr]
+par-sins ([14] val mμ nn')    = trans (neg* (par-sins mμ) (par-sins nn')) ([δl] val)
 
 pars-sins : ∀ {M N : Term} → M ==>* N → M ⟶* N
 pars-sins reflx         = reflx
