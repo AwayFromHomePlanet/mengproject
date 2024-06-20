@@ -72,9 +72,9 @@ Id = ℕ
 Name : Set
 Name = ℕ
 
-infixr 5 ƛ_⇒_
-infixr 5 μ_⇒_
-infixr 5 ν_⇒_
+infixr 8 ƛ_⇒_
+infixr 8 μ_⇒_
+infixr 8 ν_⇒_
 infix 5 [_]_
 infixl 7 _·_
 infix 7 ⁅_⁆_
@@ -229,7 +229,7 @@ _⌜_⌟ : Ctxt → Term → Term
 ([ α ] C)  ⌜ M ⌟ = [ α ] C ⌜ M ⌟
 
 infixr 4 _⟶_
-data _⟶_  : Term    → Term    → Set
+data _⟶_ : Term → Term → Set
 
 data _⟶_ where
   [β] : ∀ {x : Id} {M V : Term}
@@ -268,8 +268,8 @@ data _⟶_ where
 
 -- Reflexive transitive closure of lmuv single step reduction
 infixr 4 _⟶*_
-_⟶*_  : Term    → Term    → Set
-_⟶*_  = rtc _⟶_
+_⟶*_ : Term → Term → Set
+_⟶*_ = rtc _⟶_
 
 ctxt* : ∀ {M M' : Term} (C : Ctxt)
   → M ⟶* M'
@@ -294,7 +294,7 @@ neg* {M} {M'} {N} {N'} mm' nn' = trans-rtc (ctxt* (⁅ ∙ ⁆l N) mm') (ctxt* (
 
 ---------------- LMUV PARALLEL REDUCTION ----------------
 infixr 4 _==>_
-data _==>_  : Term    → Term    → Set
+data _==>_ : Term → Term → Set
   
 data _==>_ where
   [1] : ∀ {x : Id}
@@ -375,11 +375,11 @@ data _==>_ where
 
 -- Reflexive transitive closure of lmuv parallel reduction
 infixr 4 _==>*_
-_==>*_  : Term    → Term    → Set
-_==>*_  = rtc _==>_
+_==>*_ : Term → Term → Set
+_==>*_ = rtc _==>_
 
 -- any term parallel reduces to itself
-par-refl  : ∀ {M : Term}    → M ==> M
+par-refl : ∀ {M : Term} → M ==> M
 par-refl {` x}      = [1]
 par-refl {ƛ x ⇒ M}  = [2] par-refl
 par-refl {M · N}    = [5] par-refl par-refl
