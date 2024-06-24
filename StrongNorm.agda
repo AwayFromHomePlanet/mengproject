@@ -1,6 +1,6 @@
 module StrongNorm where
 
-open import LDefinitions
+open import Definitions
 open import Data.List using (List; []; _∷_; _∷ʳ_; _++_; length; reverse; map; foldr; downFrom)
 open import Data.List.Relation.Unary.All using (All)
 open import Data.List.Relation.Unary.Any using (Any; here; there)
